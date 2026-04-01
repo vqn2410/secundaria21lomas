@@ -13,15 +13,20 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Landing Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/sobre-nosotros" element={<AboutUs />} />
         <Route path="/noticias" element={<News />} />
+        
+        {/* Auth & Dashboards */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin/*" element={<AdminDashboard />} />
         <Route path="/docente/*" element={<TeacherDashboard />} />
         <Route path="/estudiante/*" element={<StudentDashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        
+        {/* Fallback to Home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
