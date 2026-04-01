@@ -9,11 +9,10 @@ export default function Landing() {
   return (
     <div style={{ background: 'var(--white)' }}>
       <LandingNavbar />
-      
+
       {/* Hero Section */}
       <header className="hero">
         <div className="hero-content reveal">
-          <div className="news-tag" style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.85rem' }}>UA. ENSAM. - Escuela de Educación Secundaria N° 21</div>
           <h1 className="hero-title">
             Formando el <span className="hero-accent">Futuro</span> de Lomas de Zamora.
           </h1>
@@ -29,11 +28,11 @@ export default function Landing() {
             </Link>
           </div>
         </div>
-        
+
         <div className="hero-image-container reveal reveal-delay-2">
-          <img 
-            src="https://cdn.phototourl.com/member/2026-04-01-0585ab6d-8aea-484a-a03c-c5f9ba23c4b0.jpg" 
-            alt="ENSAM" 
+          <img
+            src="https://cdn.phototourl.com/member/2026-04-01-0585ab6d-8aea-484a-a03c-c5f9ba23c4b0.jpg"
+            alt="ENSAM"
             className="hero-image"
           />
         </div>
