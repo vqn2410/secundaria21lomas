@@ -1,24 +1,31 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, GraduationCap, Mail, Phone, MapPin, Instagram, MessageCircle } from 'lucide-react';
+import { BookOpen, GraduationCap, Mail, Phone, MapPin, Instagram, MessageCircle, Menu, X } from 'lucide-react';
 
 export function LandingNavbar() {
   const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isActive = (path) => location.pathname === path;
 
   return (
     <nav className="landing-navbar">
       <Link to="/" className="landing-logo">
         <img src="https://cdn.phototourl.com/member/2026-04-01-18b3281e-b51e-4ec6-b664-ab4e364d159d.png" alt="ENSAM Logo" style={{ height: '52px' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '0.5rem', borderLeft: '1px solid var(--border)', paddingLeft: '0.75rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: '700', lineHeight: '1.1', color: 'var(--color-primary)' }}>Unidad Académica de la Escuela Normal Superior</span>
-          <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--text-light)' }}>"Antonio Mentruyt" <br />E.E.S. N° 21</span>
+        <div className="logo-text-group">
+          <span className="logo-main-text">Unidad Académica de la Escuela Normal Superior</span>
+          <span className="logo-sub-text">"Antonio Mentruyt" <br />E.E.S. N° 21</span>
         </div>
       </Link>
-      <div className="landing-nav-links">
-        <Link to="/" className={`landing-nav-link ${isActive('/') ? 'active' : ''}`}>Inicio</Link>
-        <Link to="/sobre-nosotros" className={`landing-nav-link ${isActive('/sobre-nosotros') ? 'active' : ''}`}>Sobre Nosotros</Link>
-        <Link to="/noticias" className={`landing-nav-link ${isActive('/noticias') ? 'active' : ''}`}>Noticias</Link>
-        <Link to="/login" className="btn btn-student" style={{ padding: '0.6rem 1.5rem' }}>Acceso Sistema</Link>
+
+      <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Menu">
+        {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+      </button>
+
+      <div className={`landing-nav-links ${isMenuOpen ? 'mobile-active' : ''}`}>
+        <Link to="/" className={`landing-nav-link ${isActive('/') ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}>Inicio</Link>
+        <Link to="/sobre-nosotros" className={`landing-nav-link ${isActive('/sobre-nosotros') ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}>Sobre Nosotros</Link>
+        <Link to="/noticias" className={`landing-nav-link ${isActive('/noticias') ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}>Noticias</Link>
+        <Link to="/login" className="btn btn-student mobile-login-btn" onClick={() => setIsMenuOpen(false)}>Acceso Sistema</Link>
       </div>
     </nav>
   );

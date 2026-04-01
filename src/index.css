@@ -299,6 +299,28 @@ tr:last-child td {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  z-index: 1100;
+}
+
+.logo-text-group {
+  display: flex;
+  flex-direction: column;
+  margin-left: 0.5rem;
+  border-left: 1px solid var(--border);
+  padding-left: 0.75rem;
+}
+
+.logo-main-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-primary);
+}
+
+.logo-sub-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-light);
 }
 
 .landing-nav-links {
@@ -316,6 +338,16 @@ tr:last-child td {
 
 .landing-nav-link:hover, .landing-nav-link.active {
   color: var(--color-student);
+}
+
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  z-index: 1100;
+  padding: 0.5rem;
 }
 
 .hero {
@@ -447,6 +479,42 @@ tr:last-child td {
   .hero-title { font-size: 3rem; }
   .hero-image-container { margin-top: 4rem; width: 100%; }
   .footer-content { grid-template-columns: 1fr; }
+
+  /* Mobile Navbar Adjustment */
+  .mobile-menu-toggle { display: block; }
+
+  .landing-nav-links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    max-width: 300px;
+    height: 100vh;
+    background: white;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+    transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1050;
+    gap: 2rem;
+  }
+
+  .landing-nav-links.mobile-active {
+    right: 0;
+  }
+
+  .logo-text-group { display: none; } /* Hide text on small mobile if screen is very narrow */
+  
+  .mobile-login-btn {
+    width: 100%;
+    padding: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 2.2rem; }
+  .landing-logo img { height: 40px !important; }
 }
 
 /* Scroll Reveal Animations */

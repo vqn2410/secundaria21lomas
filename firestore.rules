@@ -109,5 +109,13 @@ service cloud.firestore {
       allow write: if isTeacher() || isAdmin();
       allow delete: if isTeacher() || isAdmin();
     }
+
+    // ------------------------------------------------------------------------
+    // Colección: system_config (Configuración global)
+    // ------------------------------------------------------------------------
+    match /system_config/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
   }
 }
