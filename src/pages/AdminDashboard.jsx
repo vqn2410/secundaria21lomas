@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [subjects, setSubjects] = useState([]);
   const [teachersList, setTeachersList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
+  const [adminsList, setAdminsList] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -31,6 +32,8 @@ export default function AdminDashboard() {
   const [newSubject, setNewSubject] = useState({ name: '', level: 'Ciclo Básico', orientation: '' });
   const [newTeacher, setNewTeacher] = useState({ email: '', password: '', name: '', dni: '' });
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '', date: new Date().toISOString() });
+  const [newAdmin, setNewAdmin] = useState({ email: '', password: '', name: '' });
+  const [systemConfig, setSystemConfig] = useState({ institutionName: 'EES N°21', academicYear: '2024' });
 
   // Suscripción a datos de Firestore
   useEffect(() => {
@@ -80,9 +83,20 @@ export default function AdminDashboard() {
       setTeacherLists(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    // 9. Escuchar configuración del sistema
+    const unsubConfig = onSnapshot(doc(db, 'system_config', 'main'), (snap) => {
+      if (snap.exists()) setSystemConfig(snap.data());
+    });
+
+    // 10. Escuchar administradores
+    const qAdmins = query(collection(db, 'users'), where('role', '==', 'admin'));
+    const unsubAdmins = onSnapshot(qAdmins, (snap) => {
+      setAdminsList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubStudents(); unsubTeachers(); unsubCourses(); unsubSubjects(); unsubPractices(); 
-      unsubStudentsList(); unsubAnuncios(); unsubTeacherLists();
+      unsubStudentsList(); unsubAnuncios(); unsubTeacherLists(); unsubConfig(); unsubAdmins();
     };
   }, []);
 
@@ -125,6 +139,21 @@ export default function AdminDashboard() {
           name: newTeacher.name,
           dni: newTeacher.dni,
           role: 'docente',
+          mustChangePassword: true
+        });
+        await signOut(secondaryAuth);
+        await deleteApp(secondaryApp);
+      }
+      if (modalType === 'admin') {
+        const secondaryApp = initializeApp(auth.app.options, `SecondaryAdmin-${Date.now()}`);
+        const secondaryAuth = getAuth(secondaryApp);
+        const userCred = await createUserWithEmailAndPassword(secondaryAuth, newAdmin.email, newAdmin.password);
+        const { uid } = userCred.user;
+        await setDoc(doc(db, 'users', uid), {
+          uid,
+          email: newAdmin.email,
+          name: newAdmin.name,
+          role: 'admin',
           mustChangePassword: true
         });
         await signOut(secondaryAuth);
@@ -254,6 +283,19 @@ export default function AdminDashboard() {
       alert("¡Materias oficiales cargadas con éxito!");
     } catch (err) {
       alert("Error al precargar materias.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveConfig = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await setDoc(doc(db, 'system_config', 'main'), systemConfig);
+      alert("Configuración del sistema actualizada correctamente.");
+    } catch (err) {
+      alert("Error al guardar la configuración.");
     } finally {
       setLoading(false);
     }
@@ -552,20 +594,64 @@ export default function AdminDashboard() {
           {activeTab === 'config' && (
             <div className="card">
               <h1>Configuraciones del Sistema</h1>
-              <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                <div>
+              <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
+                <form onSubmit={handleSaveConfig}>
                   <h3>Ajustes Generales</h3>
                   <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>Gestión del nombre y ciclo lectivo del establecimiento.</p>
                   <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div className="form-group"><label>Nombre de la Institución</label><input className="input-field" defaultValue="EES N°21" /></div>
-                    <div className="form-group"><label>Año Lectivo</label><input className="input-field" defaultValue="2024" /></div>
-                    <button className="btn btn-admin">Guardar Cambios</button>
+                    <div className="form-group">
+                      <label>Nombre de la Institución</label>
+                      <input 
+                        className="input-field" 
+                        value={systemConfig.institutionName} 
+                        onChange={e => setSystemConfig({...systemConfig, institutionName: e.target.value})} 
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Año Lectivo (Ciclo)</label>
+                      <input 
+                        className="input-field" 
+                        value={systemConfig.academicYear} 
+                        onChange={e => setSystemConfig({...systemConfig, academicYear: e.target.value})} 
+                        required
+                      />
+                    </div>
+                    <button className="btn btn-admin" type="submit" disabled={loading}>
+                      {loading ? 'Guardando...' : 'Guardar Ciclo Lectivo'}
+                    </button>
                   </div>
-                </div>
+                </form>
 
-                <div style={{ paddingLeft: '2rem', borderLeft: '1px solid var(--border)' }}>
+                <div style={{ paddingLeft: '3rem', borderLeft: '1px solid var(--border)' }}>
+                  <div style={{ marginBottom: '3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3>Administradores</h3>
+                      <button className="btn btn-admin" onClick={() => { setModalType('admin'); setShowModal(true); }}><Plus size={16} /> Crear Admin</button>
+                    </div>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-light)', marginBottom: '1rem' }}>Lista de usuarios con acceso total al sistema.</p>
+                    <div className="table-wrapper">
+                      <table>
+                        <thead><tr><th>Email</th><th>Nombre</th></tr></thead>
+                        <tbody>
+                          {adminsList.map(a => (
+                            <tr key={a.id}>
+                              <td><small>{a.email}</small></td>
+                              <td>{a.name || 'Admin'}</td>
+                            </tr>
+                          ))}
+                          {adminsList.length === 0 && (
+                            <tr><td colSpan="2" style={{ textAlign: 'center', color: 'var(--text-light)' }}>Solo tú eres admin por ahora.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <hr style={{ border: 0, borderTop: '1px solid var(--border)', margin: '2rem 0' }} />
+
                   <h3>Carga de Datos Maestros</h3>
-                  <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>Presiona el botón para cargar automáticamente todas las materias del diseño curricular (Ciclo Básico y Superior por orientación).</p>
+                  <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: 'var(--text-light)' }}>Presiona el botón para cargar automáticamente todas las materias del diseño curricular oficial.</p>
                   <button 
                     className="btn btn-teacher" 
                     style={{ marginTop: '1.5rem', width: '100%', padding: '1rem' }}
@@ -574,7 +660,6 @@ export default function AdminDashboard() {
                   >
                     {loading ? 'Cargando materias...' : 'Cargar todas las Materias Oficiales'}
                   </button>
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#d97706' }}>Nota: No duplica materias que ya hayan sido creadas con el mismo nombre y ciclo.</p>
                 </div>
               </div>
             </div>
@@ -584,8 +669,16 @@ export default function AdminDashboard() {
           {showModal && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
               <div className="card" style={{ maxWidth: '500px', width: '90%' }}>
-                <h3>{modalType === 'practice' ? 'Nueva Práctica' : modalType === 'course' ? 'Nuevo Curso' : 'Nueva Materia'}</h3>
+                <h3>{modalType === 'admin' ? 'Nuevo Administrador' : modalType === 'practice' ? 'Nueva Práctica' : modalType === 'course' ? 'Nuevo Curso' : modalType === 'subject' ? 'Nueva Materia' : modalType === 'announcement' ? 'Nuevo Anuncio' : 'Nuevo Registro'}</h3>
                 <form onSubmit={handleAddData} style={{ marginTop: '1rem' }}>
+                  {modalType === 'admin' && (
+                    <>
+                      <div className="form-group"><label>Nombre del Administrador</label><input className="input-field" value={newAdmin.name} onChange={e => setNewAdmin({...newAdmin, name: e.target.value})} placeholder="Ej: Rectoría" required /></div>
+                      <div className="form-group"><label>Email de Acceso</label><input className="input-field" value={newAdmin.email} onChange={e => setNewAdmin({...newAdmin, email: e.target.value})} type="email" required /></div>
+                      <div className="form-group"><label>Contraseña</label><input className="input-field" type="password" value={newAdmin.password} onChange={e => setNewAdmin({...newAdmin, password: e.target.value})} required /></div>
+                    </>
+                  )}
+
                   {modalType === 'practice' && (
                     <>
                       <div className="grid grid-cols-2">
