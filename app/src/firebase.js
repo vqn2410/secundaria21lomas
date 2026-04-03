@@ -8,8 +8,8 @@ const firebaseConfig = {
   projectId: "secundaria21lomas",
   storageBucket: "secundaria21lomas.firebasestorage.app",
   messagingSenderId: "927585002721",
-  appId: "1:927585002721:web:7c0dd886e7078f62eb43a0",
-  measurementId: "G-ZM2N2PZF67"
+  appId: "1:927585002721:web:5fb476783e70557eeb43a0",
+  measurementId: "G-DL28G2CQ43"
 };
 
 // Initialize Firebase

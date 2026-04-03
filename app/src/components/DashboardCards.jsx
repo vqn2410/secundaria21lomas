@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
-export function DashboardCard({ title, description, icon, href, color, target = "_blank" }) {
+export function DashboardCard({ title, description, icon, href, color, target = "_self" }) {
   return (
     <Link to={href} target={target} rel="noopener noreferrer" className="card" style={{ 
       display: 'flex', 
