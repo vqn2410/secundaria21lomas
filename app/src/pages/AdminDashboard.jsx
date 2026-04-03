@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Plus, Check, Users, FileText, Settings, LayoutGrid, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard } from 'lucide-react';
+import { Plus, Check, Users, FileText, Settings, LayoutGrid, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key } from 'lucide-react';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import MainLayout from '../components/MainLayout';
@@ -146,6 +146,12 @@ const PLANILLAS_SECTIONS = [
 const ESCUELA_SECTIONS = [
   { name: 'Gestión Institucional', path: '/dashboard/escuela' },
   { name: 'Ciclos Lectivos', path: '/dashboard/escuela/ciclos' }
+];
+
+const PRACTICAS_SECTIONS = [
+  { name: 'Docentes Práctica', path: '/dashboard/practicas/docentes' },
+  { name: 'Estudiantes Práctica', path: '/dashboard/practicas/estudiantes' },
+  { name: 'Gestión Accesos', path: '/dashboard/practicas/accesos' }
 ];
 
 // --- GESTIÓN DE PERSONAL: BASE DE DATOS Y LEGAJOS ---
@@ -1007,6 +1013,219 @@ function PersonalHome() {
           target="_self"
         />
       </DashboardGrid>
+    </>
+  );
+}
+
+function PracticaHome() {
+  return (
+    <>
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Gestión de Prácticas</h1>
+        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Administración integral de residentes, docentes de práctica y sus permisos de acceso.</p>
+      </div>
+
+      <DashboardGrid>
+        <DashboardCard 
+          color="#3b82f6" 
+          title="Gestión de Docentes de Práctica" 
+          description="Directorio de supervisores y docentes tutores de institutos (ISFD)." 
+          icon={<BookUser size={28} />} 
+          href="/dashboard/practicas/docentes"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#10b981" 
+          title="Gestión de Estudiantes de Práctica" 
+          description="Nómina detallada de alumnos residentes y su seguimiento pedagógico." 
+          icon={<GraduationCap size={28} />} 
+          href="/dashboard/practicas/estudiantes"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#6366f1" 
+          title="Gestión de Accesos" 
+          description="Permisos temporales para el uso de la plataforma por parte de residentes." 
+          icon={<Shield size={28} />} 
+          href="/dashboard/practicas/accesos"
+          target="_self"
+        />
+      </DashboardGrid>
+    </>
+  );
+}
+
+function PracticaDocentes() {
+  const [docentes, setDocentes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({ nombre: '', institute: '', email: '', telefono: '' });
+
+  useEffect(() => { fetchDocentes(); }, []);
+
+  const fetchDocentes = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'practica_supervisores'));
+      setDocentes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSave = async () => {
+    if (!form.nombre) return alert("Hacen falta datos");
+    if (form.id) await updateDoc(doc(db, 'practica_supervisores', form.id), form);
+    else await addDoc(collection(db, 'practica_supervisores'), form);
+    setIsEditing(false); fetchDocentes();
+  };
+
+  if (isEditing) {
+    return (
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/docentes" subSections={PRACTICAS_SECTIONS} />
+        <div className="card">
+           <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Docente Práctica' : 'Nuevo Docente Práctica'}</h1>
+           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+              <div className="form-group"><label>Apellido y Nombre</label><input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} /></div>
+              <div className="form-group"><label>ISFD / Universidad</label><input className="input-field" value={form.institute} onChange={e => setForm({...form, institute: e.target.value})} /></div>
+              <div className="form-group"><label>Email de contacto</label><input className="input-field" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+              <div className="form-group"><label>Teléfono</label><input className="input-field" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} /></div>
+           </div>
+           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
+              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/docentes" subSections={PRACTICAS_SECTIONS} />
+      <div className="header-flex">
+        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Docentes de Práctica</h1>
+        <button className="btn btn-primary" onClick={() => { setForm({ nombre: '', institute: '', email: '', telefono: '' }); setIsEditing(true); }}>+ Nuevo Docente</button>
+      </div>
+      <div className="table-wrapper">
+        <table>
+          <thead><tr><th>Supervisor / Docente Práctica</th><th>Instituto</th><th>Email</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {docentes.map(d => (
+              <tr key={d.id}>
+                <td style={{ fontWeight: 800 }}>{d.nombre.toUpperCase()}</td>
+                <td>{d.institute}</td>
+                <td>{d.email}</td>
+                <td><span className="badge" style={{ background: '#dcfce7', color: '#15803d' }}>Activo</span></td>
+                <td><button className="btn" onClick={() => { setForm(d); setIsEditing(true); }}><Pencil size={16} /></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/docentes" subSections={PRACTICAS_SECTIONS} /></div>
+    </>
+  );
+}
+
+function PracticaEstudiantes() {
+  const [practicas, setPracticas] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ residente: '', isfd: '', pid: '', curso: '', seccion: '', coformador: '', estado: 'Activa' });
+
+  useEffect(() => { fetchPracticas(); }, []);
+
+  const fetchPracticas = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'practicas_docentes'));
+      setPracticas(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSave = async () => {
+    if (!form.residente || !form.isfd) return alert("Hacen falta datos");
+    if (form.id) await updateDoc(doc(db, 'practicas_docentes', form.id), form);
+    else await addDoc(collection(db, 'practicas_docentes'), form);
+    setIsEditing(false); fetchPracticas();
+  };
+
+  if (isEditing) {
+    return (
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
+        <div className="card">
+           <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Registro' : 'Nuevo Residente'}</h1>
+           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+              <div className="form-group"><label>Apellido y Nombre (RESIDENTE)</label><input className="input-field" value={form.residente} onChange={e => setForm({...form, residente: e.target.value})} /></div>
+              <div className="form-group"><label>ISFD / Instituto</label><input className="input-field" value={form.isfd} onChange={e => setForm({...form, isfd: e.target.value})} /></div>
+              <div className="form-group">
+                <label>Materia (PID)</label>
+                <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
+                {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
+              </div>
+              <div className="form-group"><label>Curso/Sección</label><input className="input-field" placeholder="Ej: 4° 2da" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} /></div>
+              <div className="form-group"><label>Docente Co-formador</label><input className="input-field" value={form.coformador} onChange={e => setForm({...form, coformador: e.target.value})} /></div>
+              <div className="form-group">
+                <label>Estado de Práctica</label>
+                <select className="input-field" value={form.estado} onChange={e => setForm({...form, estado: e.target.value})}>
+                   <option value="Activa">Activa</option>
+                   <option value="Finalizada">Finalizada</option>
+                </select>
+              </div>
+           </div>
+           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
+              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+           </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
+      <div className="header-flex">
+        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Estudiantes de Práctica</h1>
+        <button className="btn btn-primary" onClick={() => { setForm({ residente: '', isfd: '', pid: '', curso: '', seccion: '', coformador: '', estado: 'Activa' }); setIsEditing(true); }}>+ Nuevo Registro</button>
+      </div>
+      <div className="table-wrapper">
+        <table>
+          <thead><tr><th>Residente</th><th>ISFD</th><th>Materia (PID)</th><th>Curso</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {practicas.map(p => (
+              <tr key={p.id}>
+                <td style={{ fontWeight: 800 }}>{p.residente.toUpperCase()}</td>
+                <td>{p.isfd}</td>
+                <td><span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>({p.pid})</span> {PID_CATALOG[p.pid]}</td>
+                <td>{p.curso} {p.seccion}</td>
+                <td><span className="badge" style={{ background: p.estado === 'Activa' ? '#dcfce7' : '#f1f5f9', color: p.estado === 'Activa' ? '#15803d' : '#64748b' }}>{p.estado}</span></td>
+                <td><button className="btn" onClick={() => { setForm(p); setIsEditing(true); }}><Pencil size={16} /></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} /></div>
+    </>
+  );
+}
+
+function PracticaAccesos() {
+  return (
+    <>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/accesos" subSections={PRACTICAS_SECTIONS} />
+      <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
+        <div style={{ width: '80px', height: '80px', background: '#f1f5f9', color: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
+          <Key size={40} />
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '1rem' }}>Gestión de Accesos</h2>
+        <p style={{ maxWidth: '600px', margin: '0 auto', fontSize: '1.1rem', color: 'var(--text-light)' }}>
+          Próximamente: Habilita claves temporales para que los residentes puedan registrar sus propios seguimientos en el sistema ENSAM.
+        </p>
+      </div>
+      <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/accesos" subSections={PRACTICAS_SECTIONS} /></div>
     </>
   );
 }
@@ -1937,6 +2156,13 @@ function AdminHome() {
           href="/dashboard/estudiantes"
         />
         <DashboardCard
+          color="#06b6d4"
+          title="Prácticas Docentes"
+          description="Gestión de residentes y alumnos del profesorado en la escuela."
+          icon={<BookUser size={28} />}
+          href="/dashboard/practicas"
+        />
+        <DashboardCard
           color="#8b5cf6"
           title="Mis Planillas"
           description="Planillas de calificación, asistencia y seguimiento."
@@ -2084,6 +2310,10 @@ export default function AdminDashboard() {
           </div>
         } />
         <Route path="escuela" element={<MiEscuelaHome />} />
+        <Route path="practicas" element={<PracticaHome />} />
+        <Route path="practicas/docentes" element={<PracticaDocentes />} />
+        <Route path="practicas/estudiantes" element={<PracticaEstudiantes />} />
+        <Route path="practicas/accesos" element={<PracticaAccesos />} />
         <Route path="planillas" element={<PlanillasHome />} />
         <Route path="planillas/calificacion" element={<div>Libro de Calificaciones Digital (Carga de Notas)</div>} />
         <Route path="planillas/seguimiento" element={<div>Planillas de Seguimiento Pedagógico y Asistencia</div>} />
