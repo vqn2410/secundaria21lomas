@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -12,6 +12,26 @@ export default function Login() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirección si ya está logueado
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        console.log("Usuario ya logueado, redirigiendo...");
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (userDocSnap.exists()) {
+          const { role } = userDocSnap.data();
+          if (role === 'admin') navigate('/dashboard');
+          else if (role === 'docente') navigate('/docente');
+          else if (role === 'estudiante') navigate('/estudiante');
+          else if (role === 'preceptor') navigate('/preceptor');
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -63,9 +83,10 @@ export default function Login() {
       }
 
       // Una vez validado, derivamos según su VERDADERO rol
-      if (userRole === 'admin') navigate('/admin');
+      if (userRole === 'admin') navigate('/dashboard');
       else if (userRole === 'docente') navigate('/docente');
       else if (userRole === 'estudiante') navigate('/estudiante');
+      else if (userRole === 'preceptor') navigate('/preceptor');
       else setError('Rol de cuenta desconocido.');
       
     } catch (err) {

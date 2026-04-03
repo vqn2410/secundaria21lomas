@@ -1,9 +1,14 @@
+import { useEffect } from 'react';
 import { BookOpen, History, MapPin, Award, Heart, Shield, Calendar } from 'lucide-react';
 import { LandingNavbar, LandingFooter } from '../components/LandingUI';
 import useReveal from '../hooks/useReveal';
 
 export default function AboutUs() {
   useReveal();
+
+  useEffect(() => {
+    document.title = 'Inicio';
+  }, []);
 
   const timelineEvents = [
     { year: "1909", title: "Fundación", desc: "Don Antonio Mentruyt funda la Sociedad Popular de Educación de Lomas de Zamora." },
@@ -45,8 +50,8 @@ export default function AboutUs() {
           </div>
           <div className="reveal reveal-delay-1">
             <img
-              src="https://lh3.googleusercontent.com/sitesv/APaQ0STSxisFix1TicRdHVY2wFuyZBVtKrOzTZi6s-5mAOjP_LGVkNnPS_5PSFbLBRp3ZNOR0d3-I2cDe72-4RcTIJdCzqXBh8lOIZuFjSJS3c3cKKNK2Lj_2MO0KuM5xvnLjJ0jgG0fhRVQO3EKQ_dgs84TvJ6OnyeuDnt4sivHUlDKRc6XuRfOjpJYP0MIirulvarfFBvxN1LC50WGR5WbfHDNlZIN7vw1kiJedQ8=w1280"
-              alt="Don Antonio Mentruyt"
+              src="https://cdn.phototourl.com/member/2026-04-02-a30efa6f-b6b1-432a-a48f-7dc4d8609cb3.jpg"
+              alt="Retrato Oficial de Don Antonio Mentruyt"
               style={{ width: '100%', borderRadius: '24px', boxShadow: 'var(--shadow-hover)', border: '1px solid var(--border)' }}
             />
           </div>
@@ -103,7 +108,7 @@ export default function AboutUs() {
             </div>
           </div>
           <div className="card reveal-delay-2" style={{ padding: 0, overflow: 'hidden' }}>
-            <img src="https://lh3.googleusercontent.com/sitesv/APaQ0STurGWbt9eHdHWFoVbhc_9QyvLrJSEQRJhriAhXfIllDO14dnu9AsU0WAC79FVL4BJFbd_HyuKLFNCmpJiMpVK144sALrT-K8Glckb5ne-HQUaQNDLVSl_GXFrYoFUR_nzSjVmXOKBeIi9MhQOpl3TZ7L08XNKXyniAmIs5ZA2ZjkMTyy6LwVWVHRKdQTZa2RuXBoVHMpJMqRxaY1IRfhVBOzh0i9NAN-1QL4U=w1280" style={{ width: '100%', height: '240px', objectFit: 'cover' }} alt="Biblioteca Mentruyt" />
+            <img src="https://cdn.phototourl.com/member/2026-04-02-b998eb49-8897-43fa-8e94-0a718d483305.png" style={{ width: '100%', height: '240px', objectFit: 'cover' }} alt="Edificio de la Biblioteca Mentruyt" />
             <div style={{ padding: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <Award size={24} color="var(--color-primary)" />

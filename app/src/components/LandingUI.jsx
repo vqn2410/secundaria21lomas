@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BookOpen, GraduationCap, Mail, Phone, MapPin, Instagram, MessageCircle, Menu, X } from 'lucide-react';
+import Logo from './Logo';
 
 export function LandingNavbar() {
   const location = useLocation();
@@ -9,13 +10,7 @@ export function LandingNavbar() {
 
   return (
     <nav className="landing-navbar">
-      <Link to="/" className="landing-logo">
-        <img src="https://cdn.phototourl.com/member/2026-04-01-18b3281e-b51e-4ec6-b664-ab4e364d159d.png" alt="ENSAM Logo" style={{ height: '52px' }} />
-        <div className="logo-text-group">
-          <span className="logo-main-text">Unidad Académica de la Escuela Normal Superior</span>
-          <span className="logo-sub-text">"Antonio Mentruyt" <br />E.E.S. N° 21</span>
-        </div>
-      </Link>
+      <Logo />
 
       <button className="mobile-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Menu">
         {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -37,13 +32,7 @@ export function LandingFooter() {
       <div className="footer-content">
         <div style={{ textAlign: 'left' }}>
           <div style={{ marginBottom: '1.5rem' }}>
-            <Link to="/" className="landing-logo" style={{ textDecoration: 'none' }}>
-              <img src="https://cdn.phototourl.com/member/2026-04-01-18b3281e-b51e-4ec6-b664-ab4e364d159d.png" alt="ENSAM Logo" style={{ height: '52px' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '0.5rem', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '0.75rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: '700', lineHeight: '1.1', color: 'white' }}>Unidad Académica de la Escuela Normal Superior</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#94a3b8' }}>"Antonio Mentruyt" <br />E.E.S. N° 21</span>
-              </div>
-            </Link>
+            <Logo light={true} />
           </div>
           <p style={{ color: '#94a3b8', maxWidth: '400px', lineHeight: '1.8', marginBottom: '1.5rem' }}>
             Comprometidos con la excelencia académica y la formación integral de nuestros estudiantes en Banfield.

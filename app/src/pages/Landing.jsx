@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GraduationCap, Users, ShieldCheck, ArrowRight } from 'lucide-react';
 import { LandingNavbar, LandingFooter } from '../components/LandingUI';
@@ -5,6 +6,10 @@ import useReveal from '../hooks/useReveal';
 
 export default function Landing() {
   useReveal();
+
+  useEffect(() => {
+    document.title = 'Inicio';
+  }, []);
 
   return (
     <div style={{ background: 'var(--white)' }}>
