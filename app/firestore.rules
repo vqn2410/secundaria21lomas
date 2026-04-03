@@ -111,9 +111,40 @@ service cloud.firestore {
     }
 
     // ------------------------------------------------------------------------
-    // Colección: system_config (Configuración global)
+    // Colecciones de Mi Personal (Gestión Institucional)
     // ------------------------------------------------------------------------
-    match /system_config/{id} {
+    match /personal/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /nomina/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /cupof_master/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colecciones de Prácticas Docentes (ISFD)
+    // ------------------------------------------------------------------------
+    match /practicas_docentes/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /practica_supervisores/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: ciclos (Gestión de Ciclos Lectivos)
+    // ------------------------------------------------------------------------
+    match /ciclos/{id} {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
