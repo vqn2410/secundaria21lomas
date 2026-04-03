@@ -148,5 +148,21 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if isAdmin();
     }
+
+    // ------------------------------------------------------------------------
+    // Colección: roles (Permisos de la Plataforma)
+    // ------------------------------------------------------------------------
+    match /roles/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: system_config (Configuración global)
+    // ------------------------------------------------------------------------
+    match /system_config/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
   }
 }
