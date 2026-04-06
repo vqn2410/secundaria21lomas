@@ -82,12 +82,22 @@ export default function Login() {
         return;
       }
 
+      // Normalizamos el rol para evitar errores por mayúsculas o espacios
+      const normalizedRole = userRole ? userRole.trim().toLowerCase() : '';
+      console.log("Rol normalizado:", normalizedRole);
+
       // Una vez validado, derivamos según su VERDADERO rol
-      if (userRole === 'admin' || userRole === 'equipo-de-conduccion') navigate('/dashboard');
-      else if (userRole === 'docente') navigate('/docente');
-      else if (userRole === 'estudiante') navigate('/estudiante');
-      else if (userRole === 'preceptor') navigate('/preceptor');
-      else setError(`Rol de cuenta desconocido (${userRole}).`);
+      if (normalizedRole === 'admin' || normalizedRole === 'administrador' || normalizedRole.includes('conduccion')) {
+        navigate('/dashboard');
+      } else if (normalizedRole === 'docente') {
+        navigate('/docente');
+      } else if (normalizedRole === 'estudiante' || normalizedRole === 'alumno') {
+        navigate('/estudiante');
+      } else if (normalizedRole === 'preceptor') {
+        navigate('/preceptor');
+      } else {
+        setError(`Rol de cuenta desconocido (${userRole || 'sin rol'}). Contacte soporte.`);
+      }
       
     } catch (err) {
       console.error("Error completo de login:", err);
