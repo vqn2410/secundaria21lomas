@@ -107,6 +107,13 @@ export default function Login() {
             {loading ? 'Ingresando...' : 'Ingresar a la Plataforma'}
           </button>
         </form>
+
+        <div style={{ marginTop: '2rem', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+          <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', fontWeight: 600 }}>¿Eres estudiante del Profesorado (ISFD)?</p>
+          <button onClick={() => navigate('/gpd-registro')} className="btn" style={{ fontSize: '0.85rem', color: 'var(--color-primary)', border: '1px solid var(--color-primary)', padding: '0.5rem 1rem', width: '100%' }}>
+            Registro de Estudiantes de Práctica
+          </button>
+        </div>
       </div>
     </div>
   );

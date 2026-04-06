@@ -149,6 +149,7 @@ const ESCUELA_SECTIONS = [
 ];
 
 const PRACTICAS_SECTIONS = [
+  { name: 'Gestión Institutos', path: '/dashboard/practicas/institutos' },
   { name: 'Docentes Práctica', path: '/dashboard/practicas/docentes' },
   { name: 'Estudiantes Práctica', path: '/dashboard/practicas/estudiantes' },
   { name: 'Gestión Accesos', path: '/dashboard/practicas/accesos' }
@@ -1028,6 +1029,14 @@ function PracticaHome() {
       <DashboardGrid>
         <DashboardCard 
           color="#3b82f6" 
+          title="Gestión de Institutos" 
+          description="Directorio de Institutos (ISFD) co-formadores." 
+          icon={<LayoutGrid size={28} />} 
+          href="/dashboard/practicas/institutos"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#3b82f6" 
           title="Gestión de Docentes de Práctica" 
           description="Directorio de supervisores y docentes tutores de institutos (ISFD)." 
           icon={<BookUser size={28} />} 
@@ -1124,6 +1133,147 @@ function PracticaDocentes() {
       </div>
       <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/docentes" subSections={PRACTICAS_SECTIONS} /></div>
     </>
+  );
+}
+
+function PracticaInstitutos() {
+  const [institutos, setInstitutos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '', distrito: '', direccion: '', telefono: '', correo: '', director: ''
+  });
+
+  const fetchInstitutos = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'institutos'));
+      setInstitutos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchInstitutos();
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.nombre || !formData.distrito) return;
+    try {
+      await addDoc(collection(db, 'institutos'), formData);
+      setFormData({ nombre: '', distrito: '', direccion: '', telefono: '', correo: '', director: '' });
+      setIsAdding(false);
+      fetchInstitutos();
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este Instituto?")) return;
+    try {
+      await deleteDoc(doc(db, 'institutos', id));
+      fetchInstitutos();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/institutos" subSections={PRACTICAS_SECTIONS} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#3b82f6' }}>Directorio de Institutos</h1>
+        {!isAdding && (
+          <button className="btn btn-primary" style={{ background: '#3b82f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => setIsAdding(true)}>
+             + Cargar Instituto
+          </button>
+        )}
+      </div>
+
+      {isAdding && (
+        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid #3b82f6', background: '#eff6ff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.25rem', color: '#1d4ed8' }}>Cargar Nuevo Instituto (ISFD)</h3>
+            <button className="btn" onClick={() => setIsAdding(false)}>Cerrar</button>
+          </div>
+          <form onSubmit={handleSave}>
+            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
+              <div className="form-group">
+                <label>Nombre del Instituto *</label>
+                <input required className="input-field" placeholder="Ej: ISFD N°41" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Distrito *</label>
+                <input required className="input-field" placeholder="Ej: Alte. Brown" value={formData.distrito} onChange={e => setFormData({...formData, distrito: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Dirección</label>
+                <input className="input-field" placeholder="Calle y N°" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Teléfono de Contacto</label>
+                <input className="input-field" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Correo Electrónico Oficial</label>
+                <input type="email" className="input-field" value={formData.correo} onChange={e => setFormData({...formData, correo: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Director/a a cargo</label>
+                <input className="input-field" value={formData.director} onChange={e => setFormData({...formData, director: e.target.value})} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button type="submit" className="btn btn-primary" style={{ background: '#3b82f6' }}>Guardar Instituto</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? <p style={{ padding: '2rem', textAlign: 'center' }}>Cargando institutos...</p> : (
+          <table>
+            <thead style={{ background: '#f8fafc' }}>
+              <tr>
+                <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Instituto Superior</th>
+                <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Distrito</th>
+                <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Contacto</th>
+                <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'center' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {institutos.map(inst => (
+                <tr key={inst.id}>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>{inst.nombre}</td>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>{inst.distrito}</td>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <p><strong>Tel:</strong> {inst.telefono || '-'}</p>
+                      <p><strong>Email:</strong> {inst.correo || '-'}</p>
+                    </div>
+                  </td>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <button className="btn" onClick={() => handleDelete(inst.id)} style={{ color: '#ef4444', padding: '0.5rem' }} title="Eliminar Instituto">
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {institutos.length === 0 && (
+                <tr>
+                   <td colSpan="4" style={{ padding: '3rem', textAlign: 'center', opacity: 0.6 }}>No hay Institutos cargados en la base de datos.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -2311,6 +2461,7 @@ export default function AdminDashboard() {
         } />
         <Route path="escuela" element={<MiEscuelaHome />} />
         <Route path="practicas" element={<PracticaHome />} />
+        <Route path="practicas/institutos" element={<PracticaInstitutos />} />
         <Route path="practicas/docentes" element={<PracticaDocentes />} />
         <Route path="practicas/estudiantes" element={<PracticaEstudiantes />} />
         <Route path="practicas/accesos" element={<PracticaAccesos />} />

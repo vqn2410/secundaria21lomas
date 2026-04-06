@@ -5,6 +5,7 @@ import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc,
 import { db, auth } from '../firebase';
 import MainLayout from '../components/MainLayout';
 import { DashboardGrid, DashboardCard } from '../components/DashboardCards';
+import GPDApp from './GPDApp';
 
 // --- CATÁLOGO DE CÓDIGOS PID INSTITUCIONALES ---
 
@@ -116,13 +117,13 @@ function AdminSubNav({ mainTitle, mainPath, currentPath, subSections }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {prev && (
           <button onClick={() => navigate(prev.path)} className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', fontWeight: 600 }}>
-             <ChevronLeft size={18} /> {prev.name}
+            <ChevronLeft size={18} /> {prev.name}
           </button>
         )}
         {(prev && next) && <div style={{ height: '24px', width: '1px', background: 'var(--border)', margin: '0 0.75rem' }}></div>}
         {next && (
           <button onClick={() => navigate(next.path)} className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', fontWeight: 600 }}>
-             {next.name} <ChevronRight size={18} />
+            {next.name} <ChevronRight size={18} />
           </button>
         )}
       </div>
@@ -212,15 +213,15 @@ function PersonalDatabase() {
   };
 
   const addCargo = () => {
-    setFormData({...formData, cargos: [...formData.cargos, { materia: '', curso: '', situacion: 'Provisional', horas: '' }] });
+    setFormData({ ...formData, cargos: [...formData.cargos, { materia: '', curso: '', situacion: 'Provisional', horas: '' }] });
   };
 
   const removeCargo = (index) => {
-    setFormData({...formData, cargos: formData.cargos.filter((_, i) => i !== index) });
+    setFormData({ ...formData, cargos: formData.cargos.filter((_, i) => i !== index) });
   };
 
-  const filtered = personal.filter(p => 
-    `${p.apellido} ${p.nombre}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filtered = personal.filter(p =>
+    `${p.apellido} ${p.nombre}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.dni.includes(searchTerm)
   );
 
@@ -230,131 +231,131 @@ function PersonalDatabase() {
         <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/database" subSections={PERSONAL_SECTIONS} />
         <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-             <button className="btn" onClick={() => setIsEditing(false)}><ArrowLeft size={18} /></button>
-             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>{formData.id ? 'Editar Legajo' : 'Registrar Nuevo Agente'}</h1>
+            <button className="btn" onClick={() => setIsEditing(false)}><ArrowLeft size={18} /></button>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>{formData.id ? 'Editar Legajo' : 'Registrar Nuevo Agente'}</h1>
           </div>
           <button className="btn btn-primary" onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-             <Save size={18} /> Guardar Cambios
+            <Save size={18} /> Guardar Cambios
           </button>
         </div>
 
         <div className="card" style={{ marginBottom: '2rem' }}>
-           <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Datos Identificatorios</h3>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group">
-                <label>CUIL (Prefijo - DNI - Sufijo)</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                   <input className="input-field" style={{ width: '60px' }} value={formData.cuil_pre} onChange={e => setFormData({...formData, cuil_pre: e.target.value})} />
-                   <input className="input-field" placeholder="DNI" style={{ flex: 1 }} value={formData.dni} onChange={e => setFormData({...formData, dni: e.target.value})} />
-                   <input className="input-field" style={{ width: '50px' }} value={formData.cuil_suf} onChange={e => setFormData({...formData, cuil_suf: e.target.value})} />
-                </div>
+          <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Datos Identificatorios</h3>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group">
+              <label>CUIL (Prefijo - DNI - Sufijo)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input className="input-field" style={{ width: '60px' }} value={formData.cuil_pre} onChange={e => setFormData({ ...formData, cuil_pre: e.target.value })} />
+                <input className="input-field" placeholder="DNI" style={{ flex: 1 }} value={formData.dni} onChange={e => setFormData({ ...formData, dni: e.target.value })} />
+                <input className="input-field" style={{ width: '50px' }} value={formData.cuil_suf} onChange={e => setFormData({ ...formData, cuil_suf: e.target.value })} />
               </div>
-              <div className="form-group">
-                <label>Correo @abc.gob.ar</label>
-                <input className="input-field" value={formData.email_abc} onChange={e => setFormData({...formData, email_abc: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Apellido</label>
-                <input className="input-field" value={formData.apellido} onChange={e => setFormData({...formData, apellido: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Nombre</label>
-                <input className="input-field" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Fecha de Nacimiento</label>
-                <input className="input-field" type="date" value={formData.fecha_nacimiento} onChange={e => setFormData({...formData, fecha_nacimiento: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Teléfono de Contacto</label>
-                <input className="input-field" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} />
-              </div>
-           </div>
+            </div>
+            <div className="form-group">
+              <label>Correo @abc.gob.ar</label>
+              <input className="input-field" value={formData.email_abc} onChange={e => setFormData({ ...formData, email_abc: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Apellido</label>
+              <input className="input-field" value={formData.apellido} onChange={e => setFormData({ ...formData, apellido: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Nombre</label>
+              <input className="input-field" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Fecha de Nacimiento</label>
+              <input className="input-field" type="date" value={formData.fecha_nacimiento} onChange={e => setFormData({ ...formData, fecha_nacimiento: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Teléfono de Contacto</label>
+              <input className="input-field" value={formData.telefono} onChange={e => setFormData({ ...formData, telefono: e.target.value })} />
+            </div>
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '2rem' }}>
-           <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Domicilio Institucional</h3>
-           <div className="grid grid-cols-3" style={{ gap: '1rem' }}>
-              <div className="form-group" style={{ gridColumn: 'span 1' }}>
-                <label>Dirección y Altura</label>
-                <input className="input-field" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Localidad</label>
-                <input className="input-field" value={formData.localidad} onChange={e => setFormData({...formData, localidad: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Cód. Postal</label>
-                <input className="input-field" value={formData.cp} onChange={e => setFormData({...formData, cp: e.target.value})} />
-              </div>
-           </div>
+          <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Domicilio Institucional</h3>
+          <div className="grid grid-cols-3" style={{ gap: '1rem' }}>
+            <div className="form-group" style={{ gridColumn: 'span 1' }}>
+              <label>Dirección y Altura</label>
+              <input className="input-field" value={formData.direccion} onChange={e => setFormData({ ...formData, direccion: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Localidad</label>
+              <input className="input-field" value={formData.localidad} onChange={e => setFormData({ ...formData, localidad: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Cód. Postal</label>
+              <input className="input-field" value={formData.cp} onChange={e => setFormData({ ...formData, cp: e.target.value })} />
+            </div>
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '2rem', border: '1px solid #fca5a5', background: '#fff1f2' }}>
-           <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #fecaca', paddingBottom: '0.5rem', color: '#b91c1c' }}>Información Médica / Salud</h3>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group">
-                 <label>Enfermedades Preexistentes</label>
-                 <input className="input-field" value={formData.enfermedades} onChange={e => setFormData({...formData, enfermedades: e.target.value})} />
-              </div>
-              <div className="form-group">
-                 <label>Medicamentos Crónicos</label>
-                 <input className="input-field" value={formData.medicamentos} onChange={e => setFormData({...formData, medicamentos: e.target.value})} />
-              </div>
-              <div className="form-group">
-                 <label>Obra Social / Prepaga</label>
-                 <input className="input-field" value={formData.obra_social} onChange={e => setFormData({...formData, obra_social: e.target.value})} />
-              </div>
-              <div className="form-group">
-                 <label>Teléfonos de Emergencia</label>
-                 <input className="input-field" value={formData.tel_emergencia} onChange={e => setFormData({...formData, tel_emergencia: e.target.value})} />
-              </div>
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                 <label>Observaciones de Salud (Aptos, incapacidad, etc)</label>
-                 <textarea className="input-field" style={{ minHeight: '80px' }} value={formData.salud} onChange={e => setFormData({...formData, salud: e.target.value})} />
-              </div>
-           </div>
+          <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #fecaca', paddingBottom: '0.5rem', color: '#b91c1c' }}>Información Médica / Salud</h3>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group">
+              <label>Enfermedades Preexistentes</label>
+              <input className="input-field" value={formData.enfermedades} onChange={e => setFormData({ ...formData, enfermedades: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Medicamentos Crónicos</label>
+              <input className="input-field" value={formData.medicamentos} onChange={e => setFormData({ ...formData, medicamentos: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Obra Social / Prepaga</label>
+              <input className="input-field" value={formData.obra_social} onChange={e => setFormData({ ...formData, obra_social: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Teléfonos de Emergencia</label>
+              <input className="input-field" value={formData.tel_emergencia} onChange={e => setFormData({ ...formData, tel_emergencia: e.target.value })} />
+            </div>
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label>Observaciones de Salud (Aptos, incapacidad, etc)</label>
+              <textarea className="input-field" style={{ minHeight: '80px' }} value={formData.salud} onChange={e => setFormData({ ...formData, salud: e.target.value })} />
+            </div>
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '4rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-               <h3 style={{ color: 'var(--color-primary)' }}>Cargos y Desempeños Activos</h3>
-               <button className="btn" onClick={addCargo} style={{ color: 'var(--color-primary)', fontWeight: 700 }}>+ Agregar Cargo</button>
-            </div>
-            {formData.cargos?.map((c, index) => (
-              <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 40px', gap: '0.75rem', marginBottom: '1rem', alignItems: 'end', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
-                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>MATERIA / CARGO</label>
-                    <input className="input-field" value={c.materia} onChange={e => {
-                       const next = [...formData.cargos]; next[index].materia = e.target.value; setFormData({...formData, cargos: next});
-                    }} />
-                 </div>
-                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>CURSO/DIV</label>
-                    <input className="input-field" value={c.curso} onChange={e => {
-                       const next = [...formData.cargos]; next[index].curso = e.target.value; setFormData({...formData, cargos: next});
-                    }} />
-                 </div>
-                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>REVISIÓN</label>
-                    <select className="input-field" value={c.situacion} onChange={e => {
-                       const next = [...formData.cargos]; next[index].situacion = e.target.value; setFormData({...formData, cargos: next});
-                    }}>
-                       <option value="Titular">Titular</option>
-                       <option value="Provisional">Provisional</option>
-                       <option value="Suplente">Suplente</option>
-                    </select>
-                 </div>
-                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.65rem' }}>HORAS</label>
-                    <input className="input-field" type="number" value={c.horas} onChange={e => {
-                       const next = [...formData.cargos]; next[index].horas = e.target.value; setFormData({...formData, cargos: next});
-                    }} />
-                 </div>
-                 <button className="btn" onClick={() => removeCargo(index)} style={{ padding: '0.5rem', color: '#ef4444' }}><Trash2 size={18} /></button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            <h3 style={{ color: 'var(--color-primary)' }}>Cargos y Desempeños Activos</h3>
+            <button className="btn" onClick={addCargo} style={{ color: 'var(--color-primary)', fontWeight: 700 }}>+ Agregar Cargo</button>
+          </div>
+          {formData.cargos?.map((c, index) => (
+            <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 40px', gap: '0.75rem', marginBottom: '1rem', alignItems: 'end', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.65rem' }}>MATERIA / CARGO</label>
+                <input className="input-field" value={c.materia} onChange={e => {
+                  const next = [...formData.cargos]; next[index].materia = e.target.value; setFormData({ ...formData, cargos: next });
+                }} />
               </div>
-            ))}
-            {(!formData.cargos || formData.cargos.length === 0) && <p style={{ textAlign: 'center', opacity: 0.5, padding: '2rem' }}>No hay cargos registrados para este agente.</p>}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.65rem' }}>CURSO/DIV</label>
+                <input className="input-field" value={c.curso} onChange={e => {
+                  const next = [...formData.cargos]; next[index].curso = e.target.value; setFormData({ ...formData, cargos: next });
+                }} />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.65rem' }}>REVISIÓN</label>
+                <select className="input-field" value={c.situacion} onChange={e => {
+                  const next = [...formData.cargos]; next[index].situacion = e.target.value; setFormData({ ...formData, cargos: next });
+                }}>
+                  <option value="Titular">Titular</option>
+                  <option value="Provisional">Provisional</option>
+                  <option value="Suplente">Suplente</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.65rem' }}>HORAS</label>
+                <input className="input-field" type="number" value={c.horas} onChange={e => {
+                  const next = [...formData.cargos]; next[index].horas = e.target.value; setFormData({ ...formData, cargos: next });
+                }} />
+              </div>
+              <button className="btn" onClick={() => removeCargo(index)} style={{ padding: '0.5rem', color: '#ef4444' }}><Trash2 size={18} /></button>
+            </div>
+          ))}
+          {(!formData.cargos || formData.cargos.length === 0) && <p style={{ textAlign: 'center', opacity: 0.5, padding: '2rem' }}>No hay cargos registrados para este agente.</p>}
         </div>
       </div>
     );
@@ -376,7 +377,7 @@ function PersonalDatabase() {
             </div>
           </div>
           <button className="btn btn-primary" onClick={() => handleEdit(p)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-             <Pencil size={18} /> Editar Información
+            <Pencil size={18} /> Editar Información
           </button>
         </div>
 
@@ -387,9 +388,9 @@ function PersonalDatabase() {
             </div>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{p.apellido}, {p.nombre}</h2>
             <p style={{ fontWeight: 800, color: 'var(--color-primary)', letterSpacing: '0.1em' }}>CUIL: {p.cuil_pre} {p.dni} {p.cuil_suf}</p>
-            
+
             <hr style={{ margin: '2rem 0', opacity: 0.1 }} />
-            
+
             <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                 <Mail size={18} style={{ color: 'var(--color-secondary)' }} />
@@ -416,91 +417,91 @@ function PersonalDatabase() {
           </div>
 
           <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-             <div className="card">
-                <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <MapPin size={20} style={{ color: 'var(--color-primary)' }} /> Domicilio y Localidad
-                </h3>
-                <div className="grid grid-cols-3">
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>DIRECCIÓN Y ALTURA</p>
-                      <p style={{ fontWeight: 600 }}>{p.direccion}</p>
-                   </div>
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>LOCALIDAD</p>
-                      <p style={{ fontWeight: 600 }}>{p.localidad}</p>
-                   </div>
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>CÓDIGO POSTAL</p>
-                      <p style={{ fontWeight: 600 }}>{p.cp}</p>
-                   </div>
+            <div className="card">
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MapPin size={20} style={{ color: 'var(--color-primary)' }} /> Domicilio y Localidad
+              </h3>
+              <div className="grid grid-cols-3">
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>DIRECCIÓN Y ALTURA</p>
+                  <p style={{ fontWeight: 600 }}>{p.direccion}</p>
                 </div>
-             </div>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>LOCALIDAD</p>
+                  <p style={{ fontWeight: 600 }}>{p.localidad}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6 }}>CÓDIGO POSTAL</p>
+                  <p style={{ fontWeight: 600 }}>{p.cp}</p>
+                </div>
+              </div>
+            </div>
 
-             <div className="card" style={{ background: '#fef2f2', border: '1px solid #fee2e2' }}>
-                <h3 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c' }}>
-                  <HeartPulse size={24} /> Ficha Médica y Emergencia
-                </h3>
-                
-                <div className="grid grid-cols-2" style={{ gap: '2rem' }}>
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>ENFERMEDADES / CONDICIONES</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-                         <Activity size={16} /> {p.enfermedades}
-                      </div>
-                   </div>
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>MEDICAMENTOS CRÓNICOS</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-                         <Stethoscope size={16} /> {p.medicamentos}
-                      </div>
-                   </div>
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>OBRA SOCIAL / PREPAGA</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-                         <ShieldPlus size={16} /> {p.obra_social}
-                      </div>
-                   </div>
-                   <div>
-                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>TELÉFONOS DE EMERGENCIA</p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, background: 'white', padding: '0.5rem', borderRadius: '8px', border: '1px solid #fecaca' }}>
-                         <Siren size={16} /> {p.tel_emergencia}
-                      </div>
-                   </div>
-                </div>
-                
-                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #fecaca', fontSize: '0.85rem' }}>
-                   <strong>Observación General:</strong> {p.salud}
-                </div>
-             </div>
+            <div className="card" style={{ background: '#fef2f2', border: '1px solid #fee2e2' }}>
+              <h3 style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c' }}>
+                <HeartPulse size={24} /> Ficha Médica y Emergencia
+              </h3>
 
-             <div className="card">
-                <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <NotebookTabs size={20} style={{ color: 'var(--color-primary)' }} /> Cargos y Desempeños Actuales
-                </h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Materia / Cargo</th>
-                      <th>Curso / División</th>
-                      <th>Situación Revista</th>
-                      <th>Carga Horaria</th>
+              <div className="grid grid-cols-2" style={{ gap: '2rem' }}>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>ENFERMEDADES / CONDICIONES</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+                    <Activity size={16} /> {p.enfermedades}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>MEDICAMENTOS CRÓNICOS</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+                    <Stethoscope size={16} /> {p.medicamentos}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>OBRA SOCIAL / PREPAGA</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+                    <ShieldPlus size={16} /> {p.obra_social}
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, color: '#b91c1c', marginBottom: '0.5rem' }}>TELÉFONOS DE EMERGENCIA</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, background: 'white', padding: '0.5rem', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                    <Siren size={16} /> {p.tel_emergencia}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #fecaca', fontSize: '0.85rem' }}>
+                <strong>Observación General:</strong> {p.salud}
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <NotebookTabs size={20} style={{ color: 'var(--color-primary)' }} /> Cargos y Desempeños Actuales
+              </h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Materia / Cargo</th>
+                    <th>Curso / División</th>
+                    <th>Situación Revista</th>
+                    <th>Carga Horaria</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.cargos?.map((c, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: 700 }}>
+                        <span style={{ color: 'var(--color-primary)', marginRight: '0.5rem' }}>({c.materia})</span>
+                        {PID_CATALOG[c.materia] || c.materia}
+                      </td>
+                      <td>{c.curso}</td>
+                      <td><span className="badge" style={{ background: 'var(--bg-teacher)', color: 'var(--color-teacher)' }}>{c.situacion}</span></td>
+                      <td>{c.horas} hs</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {p.cargos?.map((c, i) => (
-                      <tr key={i}>
-                        <td style={{ fontWeight: 700 }}>
-                           <span style={{ color: 'var(--color-primary)', marginRight: '0.5rem' }}>({c.materia})</span>
-                           {PID_CATALOG[c.materia] || c.materia}
-                        </td>
-                        <td>{c.curso}</td>
-                        <td><span className="badge" style={{ background: 'var(--bg-teacher)', color: 'var(--color-teacher)' }}>{c.situacion}</span></td>
-                        <td>{c.horas} hs</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-             </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </>
@@ -518,10 +519,10 @@ function PersonalDatabase() {
         <div style={{ display: 'flex', gap: '1rem' }}>
           <div style={{ position: 'relative' }}>
             <Search size={20} style={{ position: 'absolute', left: '1rem', top: '15px', color: 'var(--text-light)' }} />
-            <input 
-              className="input-field" 
-              placeholder="Buscar por DNI o Apellido..." 
-              style={{ paddingLeft: '3rem', width: '260px', marginBottom: 0 }} 
+            <input
+              className="input-field"
+              placeholder="Buscar por DNI o Apellido..."
+              style={{ paddingLeft: '3rem', width: '260px', marginBottom: 0 }}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -552,10 +553,10 @@ function PersonalDatabase() {
                   <td>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                       <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)', fontWeight: 700 }} onClick={() => setSelectedLegajo(p)}>
-                         <FileText size={16} /> Legajo
+                        <FileText size={16} /> Legajo
                       </button>
                       <button className="btn" style={{ color: '#f59e0b' }} onClick={() => handleEdit(p)}>
-                         <Pencil size={16} />
+                        <Pencil size={16} />
                       </button>
                     </div>
                   </td>
@@ -633,94 +634,94 @@ function PersonalNomina() {
         <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/nomina" subSections={PERSONAL_SECTIONS} />
         <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-             <button className="btn" onClick={() => setIsEditing(false)}><ArrowLeft size={18} /></button>
-             <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{editForm.id ? 'Editar Designación' : 'Nueva Designación en Nómina'}</h1>
+            <button className="btn" onClick={() => setIsEditing(false)}><ArrowLeft size={18} /></button>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{editForm.id ? 'Editar Designación' : 'Nueva Designación en Nómina'}</h1>
           </div>
           <button className="btn btn-primary" onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-             <Save size={18} /> Guardar Movimiento
+            <Save size={18} /> Guardar Movimiento
           </button>
         </div>
 
         <div className="grid grid-cols-2" style={{ gap: '2rem' }}>
-           <div className="card">
-              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Datos del Docente y Cargo</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                 <div className="form-group">
-                    <label>CUPOF</label>
-                    <input className="input-field" value={editForm.cupof} onChange={e => setEditForm({...editForm, cupof: e.target.value})} />
-                 </div>
-                 <div className="form-group">
-                    <label>CUIL</label>
-                    <input className="input-field" value={editForm.cuil} onChange={e => setEditForm({...editForm, cuil: e.target.value})} />
-                 </div>
-                 <div className="form-group">
-                    <label>Apellido y Nombre (DOCENTE)</label>
-                    <input className="input-field" value={editForm.docente} onChange={e => setEditForm({...editForm, docente: e.target.value})} />
-                 </div>
-                 <div className="form-group">
-                    <label>Situación de Revista</label>
-                    <select className="input-field" value={editForm.situacion} onChange={e => setEditForm({...editForm, situacion: e.target.value})}>
-                       <option value="Titular">Titular</option>
-                       <option value="Provisional">Provisional</option>
-                       <option value="Suplente">Suplente</option>
-                    </select>
-                 </div>
+          <div className="card">
+            <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Datos del Docente y Cargo</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label>CUPOF</label>
+                <input className="input-field" value={editForm.cupof} onChange={e => setEditForm({ ...editForm, cupof: e.target.value })} />
               </div>
-           </div>
-
-           <div className="card">
-              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Ubicación y Asignatura</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="form-group">
-                       <label>Curso</label>
-                       <input className="input-field" value={editForm.curso} onChange={e => setEditForm({...editForm, curso: e.target.value})} />
-                    </div>
-                    <div className="form-group">
-                       <label>Sección</label>
-                       <input className="input-field" value={editForm.seccion} onChange={e => setEditForm({...editForm, seccion: e.target.value})} />
-                    </div>
-                 </div>
-                 <div className="form-group">
-                    <label>Código PID</label>
-                    <input className="input-field" value={editForm.pid} onChange={e => setEditForm({...editForm, pid: e.target.value.toUpperCase()})} placeholder="Ej: MTM, BLG..." />
-                    {PID_CATALOG[editForm.pid] && (
-                      <p style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                        Confirmado: {PID_CATALOG[editForm.pid]}
-                      </p>
-                    )}
-                 </div>
+              <div className="form-group">
+                <label>CUIL</label>
+                <input className="input-field" value={editForm.cuil} onChange={e => setEditForm({ ...editForm, cuil: e.target.value })} />
               </div>
-           </div>
-
-           <div className="card" style={{ gridColumn: 'span 2' }}>
-              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Fechas y Movimientos</h3>
-              <div className="grid grid-cols-3" style={{ gap: '1.5rem' }}>
-                 <div className="form-group">
-                    <label>Fecha de Alta</label>
-                    <input className="input-field" type="date" value={editForm.alta} onChange={e => setEditForm({...editForm, alta: e.target.value})} />
-                 </div>
-                 <div className="form-group">
-                    <label>Fecha de Cese (Opcional)</label>
-                    <input className="input-field" type="date" value={editForm.cese} onChange={e => setEditForm({...editForm, cese: e.target.value})} />
-                 </div>
-                 <div className="form-group">
-                    <label>Motivo de Cese</label>
-                    <input className="input-field" value={editForm.motivo_cese} onChange={e => setEditForm({...editForm, motivo_cese: e.target.value})} placeholder="Ej: Renuncia, MAD..." disabled={!editForm.cese} />
-                 </div>
+              <div className="form-group">
+                <label>Apellido y Nombre (DOCENTE)</label>
+                <input className="input-field" value={editForm.docente} onChange={e => setEditForm({ ...editForm, docente: e.target.value })} />
               </div>
-           </div>
+              <div className="form-group">
+                <label>Situación de Revista</label>
+                <select className="input-field" value={editForm.situacion} onChange={e => setEditForm({ ...editForm, situacion: e.target.value })}>
+                  <option value="Titular">Titular</option>
+                  <option value="Provisional">Provisional</option>
+                  <option value="Suplente">Suplente</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-           <div className="card" style={{ gridColumn: 'span 2' }}>
-              <h3 style={{ marginBottom: '1.5rem', color: 'var(--color-primary)' }}>Pestaña de Observaciones</h3>
-              <textarea 
-                className="input-field" 
-                style={{ minHeight: '120px' }} 
-                value={editForm.observaciones}
-                onChange={e => setEditForm({...editForm, observaciones: e.target.value})}
-                placeholder="Notas adicionales sobre este movimiento administrativo..."
-              />
-           </div>
+          <div className="card">
+            <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Ubicación y Asignatura</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label>Curso</label>
+                  <input className="input-field" value={editForm.curso} onChange={e => setEditForm({ ...editForm, curso: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Sección</label>
+                  <input className="input-field" value={editForm.seccion} onChange={e => setEditForm({ ...editForm, seccion: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Código PID</label>
+                <input className="input-field" value={editForm.pid} onChange={e => setEditForm({ ...editForm, pid: e.target.value.toUpperCase() })} placeholder="Ej: MTM, BLG..." />
+                {PID_CATALOG[editForm.pid] && (
+                  <p style={{ marginTop: '0.4rem', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                    Confirmado: {PID_CATALOG[editForm.pid]}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ gridColumn: 'span 2' }}>
+            <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Fechas y Movimientos</h3>
+            <div className="grid grid-cols-3" style={{ gap: '1.5rem' }}>
+              <div className="form-group">
+                <label>Fecha de Alta</label>
+                <input className="input-field" type="date" value={editForm.alta} onChange={e => setEditForm({ ...editForm, alta: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Fecha de Cese (Opcional)</label>
+                <input className="input-field" type="date" value={editForm.cese} onChange={e => setEditForm({ ...editForm, cese: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Motivo de Cese</label>
+                <input className="input-field" value={editForm.motivo_cese} onChange={e => setEditForm({ ...editForm, motivo_cese: e.target.value })} placeholder="Ej: Renuncia, MAD..." disabled={!editForm.cese} />
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ gridColumn: 'span 2' }}>
+            <h3 style={{ marginBottom: '1.5rem', color: 'var(--color-primary)' }}>Pestaña de Observaciones</h3>
+            <textarea
+              className="input-field"
+              style={{ minHeight: '120px' }}
+              value={editForm.observaciones}
+              onChange={e => setEditForm({ ...editForm, observaciones: e.target.value })}
+              placeholder="Notas adicionales sobre este movimiento administrativo..."
+            />
+          </div>
         </div>
       </div>
     );
@@ -740,19 +741,19 @@ function PersonalNomina() {
             </div>
           </div>
           <button className="btn btn-primary" onClick={() => handleEdit(n)}>
-             <Pencil size={18} style={{ marginRight: '0.5rem' }} /> Editar Designación
+            <Pencil size={18} style={{ marginRight: '0.5rem' }} /> Editar Designación
           </button>
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: '#f8fafc' }}>
-            <button 
+            <button
               onClick={() => setActiveTab('info')}
               style={{ padding: '1.25rem 2rem', border: 'none', background: activeTab === 'info' ? 'white' : 'transparent', fontWeight: 700, color: activeTab === 'info' ? 'var(--color-primary)' : 'var(--text-light)', borderBottom: activeTab === 'info' ? '3px solid var(--color-primary)' : 'none', cursor: 'pointer' }}
             >
               Información del Cargo
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('obs')}
               style={{ padding: '1.25rem 2rem', border: 'none', background: activeTab === 'obs' ? 'white' : 'transparent', fontWeight: 700, color: activeTab === 'obs' ? 'var(--color-primary)' : 'var(--text-light)', borderBottom: activeTab === 'obs' ? '3px solid var(--color-primary)' : 'none', cursor: 'pointer' }}
             >
@@ -763,54 +764,54 @@ function PersonalNomina() {
           <div style={{ padding: '2.5rem' }}>
             {activeTab === 'info' ? (
               <div className="grid grid-cols-2" style={{ gap: '3rem' }}>
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Identificación</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
+                      <Hash size={16} color="var(--color-primary)" /> CUPOF: {n.cupof}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
+                      <Contact size={16} color="var(--color-primary)" /> CUIL: {n.cuil}
+                    </div>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Ubicación Curricular</p>
+                    <p style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '0.4rem' }}>{n.curso} Año {n.seccion} Sección</p>
+                    <p style={{ fontWeight: 600, color: 'var(--text-light)' }}>Materia: <span style={{ color: 'var(--color-primary)' }}>({n.pid})</span> {PID_CATALOG[n.pid] || n.materia}</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Situación de Revista</p>
+                    <span className="badge" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '1rem', padding: '0.5rem 1rem', background: 'var(--bg-teacher)', color: 'var(--color-teacher)' }}>{n.situacion}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '2rem' }}>
                     <div>
-                       <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Identificación</p>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
-                          <Hash size={16} color="var(--color-primary)" /> CUPOF: {n.cupof}
-                       </div>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
-                          <Contact size={16} color="var(--color-primary)" /> CUIL: {n.cuil}
-                       </div>
+                      <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Fecha de Alta</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
+                        <Calendar size={16} /> {n.alta}
+                      </div>
                     </div>
-                    <div>
-                       <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Ubicación Curricular</p>
-                       <p style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '0.4rem' }}>{n.curso} Año {n.seccion} Sección</p>
-                       <p style={{ fontWeight: 600, color: 'var(--text-light)' }}>Materia: <span style={{ color: 'var(--color-primary)' }}>({n.pid})</span> {PID_CATALOG[n.pid] || n.materia}</p>
-                    </div>
-                 </div>
-                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                    <div>
-                       <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Situación de Revista</p>
-                       <span className="badge" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '1rem', padding: '0.5rem 1rem', background: 'var(--bg-teacher)', color: 'var(--color-teacher)' }}>{n.situacion}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '2rem' }}>
-                       <div>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Fecha de Alta</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
-                             <Calendar size={16} /> {n.alta}
-                          </div>
-                       </div>
-                       {n.cese && (
-                         <div>
-                            <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase', color: '#ef4444' }}>Fecha y Motivo de Cese</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700, color: '#ef4444' }}>
-                               <Calendar size={16} /> {n.cese} 
-                            </div>
-                            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ef4444', marginTop: '0.25rem' }}>MOTIVO: {n.motivo_cese || 'No especificado'}</p>
-                         </div>
-                       )}
-                    </div>
-                 </div>
+                    {n.cese && (
+                      <div>
+                        <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase', color: '#ef4444' }}>Fecha y Motivo de Cese</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700, color: '#ef4444' }}>
+                          <Calendar size={16} /> {n.cese}
+                        </div>
+                        <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ef4444', marginTop: '0.25rem' }}>MOTIVO: {n.motivo_cese || 'No especificado'}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
               <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border)', minHeight: '200px' }}>
-                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <MessageSquare size={24} style={{ color: 'var(--color-primary)', marginTop: '0.2rem' }} />
-                    <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'var(--text)' }}>
-                       {n.observaciones || 'Sin observaciones registradas.'}
-                    </p>
-                 </div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  <MessageSquare size={24} style={{ color: 'var(--color-primary)', marginTop: '0.2rem' }} />
+                  <p style={{ fontSize: '1.1rem', lineHeight: '1.8', color: 'var(--text)' }}>
+                    {n.observaciones || 'Sin observaciones registradas.'}
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -849,9 +850,9 @@ function PersonalNomina() {
                   <td style={{ fontSize: '0.85rem' }}>{item.cuil}</td>
                   <td style={{ fontWeight: 700 }}>{item.docente.toUpperCase()}</td>
                   <td>
-                    <span className="badge" style={{ 
-                      background: item.cese ? '#fef2f2' : '#dcfce7', 
-                      color: item.cese ? '#ef4444' : '#15803d' 
+                    <span className="badge" style={{
+                      background: item.cese ? '#fef2f2' : '#dcfce7',
+                      color: item.cese ? '#ef4444' : '#15803d'
                     }}>
                       {item.cese ? 'CESADO' : 'ACTIVO'}
                     </span>
@@ -908,29 +909,29 @@ function PersonalCUPOF() {
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/cupof" subSections={PERSONAL_SECTIONS} />
         <div className="card">
-           <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar CUPOF' : 'Nuevo Registro CUPOF'}</h1>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group"><label>N° CUPOF</label><input className="input-field" value={form.cupof} onChange={e => setForm({...form, cupof: e.target.value})} /></div>
-              <div className="form-group">
-                <label>PID</label>
-                <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
-                {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
-              </div>
-              <div className="form-group"><label>Curso</label><input className="input-field" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} /></div>
-              <div className="form-group"><label>Sección</label><input className="input-field" value={form.seccion} onChange={e => setForm({...form, seccion: e.target.value})} /></div>
-              <div className="form-group">
-                <label>Turno</label>
-                <select className="input-field" value={form.turno} onChange={e => setForm({...form, turno: e.target.value})}>
-                   <option value="Mañana">Mañana</option>
-                   <option value="Tarde">Tarde</option>
-                   <option value="Vespertino">Vespertino</option>
-                </select>
-              </div>
-           </div>
-           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar</button>
-              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
-           </div>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar CUPOF' : 'Nuevo Registro CUPOF'}</h1>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group"><label>N° CUPOF</label><input className="input-field" value={form.cupof} onChange={e => setForm({ ...form, cupof: e.target.value })} /></div>
+            <div className="form-group">
+              <label>PID</label>
+              <input className="input-field" value={form.pid} onChange={e => setForm({ ...form, pid: e.target.value.toUpperCase() })} />
+              {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
+            </div>
+            <div className="form-group"><label>Curso</label><input className="input-field" value={form.curso} onChange={e => setForm({ ...form, curso: e.target.value })} /></div>
+            <div className="form-group"><label>Sección</label><input className="input-field" value={form.seccion} onChange={e => setForm({ ...form, seccion: e.target.value })} /></div>
+            <div className="form-group">
+              <label>Turno</label>
+              <select className="input-field" value={form.turno} onChange={e => setForm({ ...form, turno: e.target.value })}>
+                <option value="Mañana">Mañana</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Vespertino">Vespertino</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar</button>
+            <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+          </div>
         </div>
       </div>
     );
@@ -972,43 +973,43 @@ function PersonalHome() {
       </div>
 
       <DashboardGrid>
-        <DashboardCard 
-          color="#3b82f6" 
-          title="Base de Datos" 
-          description="Legajos digitales completos del personal docente y no docente." 
-          icon={<Contact size={28} />} 
+        <DashboardCard
+          color="#3b82f6"
+          title="Base de Datos"
+          description="Legajos digitales completos del personal docente y no docente."
+          icon={<Contact size={28} />}
           href="/dashboard/personal/database"
           target="_self"
         />
-        <DashboardCard 
-          color="#6366f1" 
-          title="Nómina" 
-          description="Listados generales y específicos del personal activo." 
-          icon={<NotebookTabs size={28} />} 
+        <DashboardCard
+          color="#6366f1"
+          title="Nómina"
+          description="Listados generales y específicos del personal activo."
+          icon={<NotebookTabs size={28} />}
           href="/dashboard/personal/nomina"
           target="_self"
         />
-        <DashboardCard 
-          color="#10b981" 
-          title="Mis CUPOF" 
-          description="Catálogo institucional de cargos, códigos PID y turnos." 
-          icon={<Hash size={28} />} 
+        <DashboardCard
+          color="#10b981"
+          title="Mis CUPOF"
+          description="Catálogo institucional de cargos, códigos PID y turnos."
+          icon={<Hash size={28} />}
           href="/dashboard/personal/cupof"
           target="_self"
         />
-        <DashboardCard 
-          color="#8b5cf6" 
-          title="Control de POF/POFA" 
-          description="Seguimiento de la Planta Orgánica Funcional Analítica." 
-          icon={<FileSearch size={28} />} 
+        <DashboardCard
+          color="#8b5cf6"
+          title="Control de POF/POFA"
+          description="Seguimiento de la Planta Orgánica Funcional Analítica."
+          icon={<FileSearch size={28} />}
           href="/dashboard/personal/pof"
           target="_self"
         />
-        <DashboardCard 
-          color="#f43f5e" 
-          title="Novedades" 
-          description="Carga de licencias, llegadas tarde y novedades administrativas." 
-          icon={<UserPlus size={28} />} 
+        <DashboardCard
+          color="#f43f5e"
+          title="Novedades"
+          description="Carga de licencias, llegadas tarde y novedades administrativas."
+          icon={<UserPlus size={28} />}
           href="/dashboard/personal/novedades"
           target="_self"
         />
@@ -1026,27 +1027,27 @@ function PracticaHome() {
       </div>
 
       <DashboardGrid>
-        <DashboardCard 
-          color="#3b82f6" 
-          title="Gestión de Docentes de Práctica" 
-          description="Directorio de supervisores y docentes tutores de institutos (ISFD)." 
-          icon={<BookUser size={28} />} 
+        <DashboardCard
+          color="#3b82f6"
+          title="Gestión de Docentes de Práctica"
+          description="Directorio de supervisores y docentes tutores de institutos (ISFD)."
+          icon={<BookUser size={28} />}
           href="/dashboard/practicas/docentes"
           target="_self"
         />
-        <DashboardCard 
-          color="#10b981" 
-          title="Gestión de Estudiantes de Práctica" 
-          description="Nómina detallada de alumnos residentes y su seguimiento pedagógico." 
-          icon={<GraduationCap size={28} />} 
+        <DashboardCard
+          color="#10b981"
+          title="Gestión de Estudiantes de Práctica"
+          description="Nómina detallada de alumnos residentes y su seguimiento pedagógico."
+          icon={<GraduationCap size={28} />}
           href="/dashboard/practicas/estudiantes"
           target="_self"
         />
-        <DashboardCard 
-          color="#6366f1" 
-          title="Gestión de Accesos" 
-          description="Permisos temporales para el uso de la plataforma por parte de residentes." 
-          icon={<Shield size={28} />} 
+        <DashboardCard
+          color="#6366f1"
+          title="Gestión de Accesos"
+          description="Permisos temporales para el uso de la plataforma por parte de residentes."
+          icon={<Shield size={28} />}
           href="/dashboard/practicas/accesos"
           target="_self"
         />
@@ -1083,17 +1084,17 @@ function PracticaDocentes() {
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/docentes" subSections={PRACTICAS_SECTIONS} />
         <div className="card">
-           <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Docente Práctica' : 'Nuevo Docente Práctica'}</h1>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group"><label>Apellido y Nombre</label><input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} /></div>
-              <div className="form-group"><label>ISFD / Universidad</label><input className="input-field" value={form.institute} onChange={e => setForm({...form, institute: e.target.value})} /></div>
-              <div className="form-group"><label>Email de contacto</label><input className="input-field" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
-              <div className="form-group"><label>Teléfono</label><input className="input-field" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} /></div>
-           </div>
-           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
-              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
-           </div>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Docente Práctica' : 'Nuevo Docente Práctica'}</h1>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group"><label>Apellido y Nombre</label><input className="input-field" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} /></div>
+            <div className="form-group"><label>ISFD / Universidad</label><input className="input-field" value={form.institute} onChange={e => setForm({ ...form, institute: e.target.value })} /></div>
+            <div className="form-group"><label>Email de contacto</label><input className="input-field" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+            <div className="form-group"><label>Teléfono</label><input className="input-field" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} /></div>
+          </div>
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
+            <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+          </div>
         </div>
       </div>
     );
@@ -1155,29 +1156,29 @@ function PracticaEstudiantes() {
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
         <div className="card">
-           <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Registro' : 'Nuevo Residente'}</h1>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group"><label>Apellido y Nombre (RESIDENTE)</label><input className="input-field" value={form.residente} onChange={e => setForm({...form, residente: e.target.value})} /></div>
-              <div className="form-group"><label>ISFD / Instituto</label><input className="input-field" value={form.isfd} onChange={e => setForm({...form, isfd: e.target.value})} /></div>
-              <div className="form-group">
-                <label>Materia (PID)</label>
-                <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
-                {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
-              </div>
-              <div className="form-group"><label>Curso/Sección</label><input className="input-field" placeholder="Ej: 4° 2da" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} /></div>
-              <div className="form-group"><label>Docente Co-formador</label><input className="input-field" value={form.coformador} onChange={e => setForm({...form, coformador: e.target.value})} /></div>
-              <div className="form-group">
-                <label>Estado de Práctica</label>
-                <select className="input-field" value={form.estado} onChange={e => setForm({...form, estado: e.target.value})}>
-                   <option value="Activa">Activa</option>
-                   <option value="Finalizada">Finalizada</option>
-                </select>
-              </div>
-           </div>
-           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
-              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
-           </div>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Registro' : 'Nuevo Residente'}</h1>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group"><label>Apellido y Nombre (RESIDENTE)</label><input className="input-field" value={form.residente} onChange={e => setForm({ ...form, residente: e.target.value })} /></div>
+            <div className="form-group"><label>ISFD / Instituto</label><input className="input-field" value={form.isfd} onChange={e => setForm({ ...form, isfd: e.target.value })} /></div>
+            <div className="form-group">
+              <label>Materia (PID)</label>
+              <input className="input-field" value={form.pid} onChange={e => setForm({ ...form, pid: e.target.value.toUpperCase() })} />
+              {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
+            </div>
+            <div className="form-group"><label>Curso/Sección</label><input className="input-field" placeholder="Ej: 4° 2da" value={form.curso} onChange={e => setForm({ ...form, curso: e.target.value })} /></div>
+            <div className="form-group"><label>Docente Co-formador</label><input className="input-field" value={form.coformador} onChange={e => setForm({ ...form, coformador: e.target.value })} /></div>
+            <div className="form-group">
+              <label>Estado de Práctica</label>
+              <select className="input-field" value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
+                <option value="Activa">Activa</option>
+                <option value="Finalizada">Finalizada</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
+            <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+          </div>
         </div>
       </div>
     );
@@ -1241,19 +1242,19 @@ function PlanillasHome() {
       </div>
 
       <DashboardGrid>
-        <DashboardCard 
-          color="#8b5cf6" 
-          title="Planillas de Calificación" 
-          description="Carga y consulta de notas trimestrales por curso y materia." 
-          icon={<FileCheck size={28} />} 
+        <DashboardCard
+          color="#8b5cf6"
+          title="Planillas de Calificación"
+          description="Carga y consulta de notas trimestrales por curso y materia."
+          icon={<FileCheck size={28} />}
           href="/dashboard/planillas/calificacion"
           target="_self"
         />
-        <DashboardCard 
-          color="#06b6d4" 
-          title="Planillas de Seguimiento" 
-          description="Rastreo de asistencias, conducta y evolución pedagógica." 
-          icon={<Clipboard size={28} />} 
+        <DashboardCard
+          color="#06b6d4"
+          title="Planillas de Seguimiento"
+          description="Rastreo de asistencias, conducta y evolución pedagógica."
+          icon={<Clipboard size={28} />}
           href="/dashboard/planillas/seguimiento"
           target="_self"
         />
@@ -1275,7 +1276,7 @@ function MiEscuelaHome() {
     try {
       const snap = await getDocs(collection(db, 'ciclos'));
       const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCiclos(list.length > 0 ? list.sort((a,b) => b.year - a.year) : [
+      setCiclos(list.length > 0 ? list.sort((a, b) => b.year - a.year) : [
         { id: '2026', year: '2026', status: 'active', lastModified: new Date().toISOString() },
         { id: '2025', year: '2025', status: 'archived', lastModified: new Date().toISOString() }
       ]);
@@ -1288,8 +1289,8 @@ function MiEscuelaHome() {
   const handleAddYear = async () => {
     if (!newYear) return;
     try {
-      await setDoc(doc(db, 'ciclos', newYear), { 
-        year: newYear, 
+      await setDoc(doc(db, 'ciclos', newYear), {
+        year: newYear,
         status: 'active',
         lastModified: new Date().toISOString()
       });
@@ -1308,8 +1309,8 @@ function MiEscuelaHome() {
           <p>Organiza la estructura académica de la EES N°21 para cada período escolar.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.6rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-           <input type="number" className="input-field" value={newYear} onChange={e => setNewYear(e.target.value)} placeholder="Año (Ej: 2026)" style={{ width: '140px', border: 'none', marginBottom: 0 }} />
-           <button className="btn btn-primary" onClick={handleAddYear}>Inaugurar Ciclo</button>
+          <input type="number" className="input-field" value={newYear} onChange={e => setNewYear(e.target.value)} placeholder="Año (Ej: 2026)" style={{ width: '140px', border: 'none', marginBottom: 0 }} />
+          <button className="btn btn-primary" onClick={handleAddYear}>Inaugurar Ciclo</button>
         </div>
       </div>
 
@@ -1317,48 +1318,48 @@ function MiEscuelaHome() {
         <div className="grid grid-cols-2">
           {ciclos.map(ciclo => (
             <div key={ciclo.id} className="card" style={{ position: 'relative', overflow: 'hidden', borderLeft: `8px solid ${ciclo.status === 'active' ? '#10b981' : '#cbd5e1'}` }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                 <div>
-                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.25rem', color: 'var(--color-primary)' }}>{ciclo.year}</h2>
-                    <span className="badge" style={{ 
-                       background: ciclo.status === 'active' ? '#dcfce7' : '#f1f5f9', 
-                       color: ciclo.status === 'active' ? '#15803d' : '#475569' 
-                    }}>
-                       {ciclo.status === 'active' ? 'Ciclo Vigente' : 'Ciclo Archivado'}
-                    </span>
-                 </div>
-                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {ciclo.status === 'active' && <button className="btn" style={{ background: '#f8fafc', border: '1px solid var(--border)' }}>Configurar Estructura</button>}
-                    <button className="btn" style={{ padding: '0.6rem', color: '#ef4444' }} onClick={() => { if(window.confirm("¿Archivar ciclo?")) updateDoc(doc(db,'ciclos', ciclo.id), {status: 'archived'}).then(fetchCiclos); }}><Clock size={18} /></button>
-                 </div>
-               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.25rem', color: 'var(--color-primary)' }}>{ciclo.year}</h2>
+                  <span className="badge" style={{
+                    background: ciclo.status === 'active' ? '#dcfce7' : '#f1f5f9',
+                    color: ciclo.status === 'active' ? '#15803d' : '#475569'
+                  }}>
+                    {ciclo.status === 'active' ? 'Ciclo Vigente' : 'Ciclo Archivado'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {ciclo.status === 'active' && <button className="btn" style={{ background: '#f8fafc', border: '1px solid var(--border)' }}>Configurar Estructura</button>}
+                  <button className="btn" style={{ padding: '0.6rem', color: '#ef4444' }} onClick={() => { if (window.confirm("¿Archivar ciclo?")) updateDoc(doc(db, 'ciclos', ciclo.id), { status: 'archived' }).then(fetchCiclos); }}><Clock size={18} /></button>
+                </div>
+              </div>
 
-               <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '1rem' }}>Propuesta Académica</h4>
-                  <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>3</p>
-                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>PLANES</p>
-                     </div>
-                     <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }}></div>
-                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>12</p>
-                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>SECCIONES</p>
-                     </div>
-                     <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }}></div>
-                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>540</p>
-                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>MATRÍCULA</p>
-                     </div>
+              <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '1rem' }}>Propuesta Académica</h4>
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>3</p>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>PLANES</p>
                   </div>
-               </div>
+                  <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }}></div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>12</p>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>SECCIONES</p>
+                  </div>
+                  <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }}></div>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>540</p>
+                    <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>MATRÍCULA</p>
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
           {ciclos.length === 0 && (
             <div className="card" style={{ gridColumn: 'span 2', padding: '6rem', textAlign: 'center', opacity: 0.6 }}>
-               <School size={48} style={{ marginBottom: '1.5rem', color: 'var(--color-primary)' }} />
-               <h3>No se han inaugurado Ciclos Lectivos</h3>
-               <p>Ingresa un año arriba para comenzar a estructurar tu escuela.</p>
+              <School size={48} style={{ marginBottom: '1.5rem', color: 'var(--color-primary)' }} />
+              <h3>No se han inaugurado Ciclos Lectivos</h3>
+              <p>Ingresa un año arriba para comenzar a estructurar tu escuela.</p>
             </div>
           )}
         </div>
@@ -1378,19 +1379,19 @@ function EstudiantesHome() {
       </div>
 
       <DashboardGrid>
-        <DashboardCard 
-          color="#10b981" 
-          title="Base de datos de Estudiantes" 
-          description="Legajos digitales completos, datos personales y trayectoria." 
-          icon={<Users size={28} />} 
+        <DashboardCard
+          color="#10b981"
+          title="Base de datos de Estudiantes"
+          description="Legajos digitales completos, datos personales y trayectoria."
+          icon={<Users size={28} />}
           href="/dashboard/estudiantes/database"
           target="_self"
         />
-        <DashboardCard 
-          color="#3b82f6" 
-          title="Nóminas Escolares" 
-          description="Generación de listas por curso, ciclo y orientación." 
-          icon={<ListChecks size={28} />} 
+        <DashboardCard
+          color="#3b82f6"
+          title="Nóminas Escolares"
+          description="Generación de listas por curso, ciclo y orientación."
+          icon={<ListChecks size={28} />}
           href="/dashboard/estudiantes/nominas"
           target="_self"
         />
@@ -1420,38 +1421,38 @@ function NominaEstudiantes() {
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
-             <label style={{ fontSize: '0.75rem' }}>Ciclo Lectivo</label>
-             <select className="input-field" value={filter.ciclo} onChange={e => setFilter({...filter, ciclo: e.target.value})}>
-               <option value="2026">2026</option>
-               <option value="2025">2025</option>
-             </select>
+            <label style={{ fontSize: '0.75rem' }}>Ciclo Lectivo</label>
+            <select className="input-field" value={filter.ciclo} onChange={e => setFilter({ ...filter, ciclo: e.target.value })}>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-             <label style={{ fontSize: '0.75rem' }}>Propuesta</label>
-             <select className="input-field" value={filter.propuesta} onChange={e => setFilter({...filter, propuesta: e.target.value})}>
-               <option value="todas">Todas</option>
-               <option value="basico">Ciclo Básico</option>
-               <option value="superior">Ciclo Superior</option>
-             </select>
+            <label style={{ fontSize: '0.75rem' }}>Propuesta</label>
+            <select className="input-field" value={filter.propuesta} onChange={e => setFilter({ ...filter, propuesta: e.target.value })}>
+              <option value="todas">Todas</option>
+              <option value="basico">Ciclo Básico</option>
+              <option value="superior">Ciclo Superior</option>
+            </select>
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
-             <label style={{ fontSize: '0.75rem' }}>Orientación</label>
-             <select className="input-field" value={filter.orientacion} onChange={e => setFilter({...filter, orientacion: e.target.value})}>
-               <option value="todas">Todas las Orientaciones</option>
-               {orientaciones.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-             </select>
+            <label style={{ fontSize: '0.75rem' }}>Orientación</label>
+            <select className="input-field" value={filter.orientacion} onChange={e => setFilter({ ...filter, orientacion: e.target.value })}>
+              <option value="todas">Todas las Orientaciones</option>
+              {orientaciones.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
           </div>
           <button className="btn btn-primary" style={{ height: '48px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-             <Filter size={18} /> Aplicar Filtros
+            <Filter size={18} /> Aplicar Filtros
           </button>
         </div>
       </div>
 
       <div className="table-wrapper">
-         <div style={{ padding: '8rem', textAlign: 'center' }}>
-            <h3 style={{ color: 'var(--text-light)' }}>Genera nóminas rápidas aplicando los filtros de arriba.</h3>
-            <p>Los resultados aparecerán aquí procesados por la base de datos central.</p>
-         </div>
+        <div style={{ padding: '8rem', textAlign: 'center' }}>
+          <h3 style={{ color: 'var(--text-light)' }}>Genera nóminas rápidas aplicando los filtros de arriba.</h3>
+          <p>Los resultados aparecerán aquí procesados por la base de datos central.</p>
+        </div>
       </div>
     </>
   );
@@ -1470,10 +1471,10 @@ function PlanEstudiosManagement() {
     const snap = await getDocs(collection(db, 'orientaciones'));
     const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setOrientaciones(list.length > 0 ? list : [
-      { id: '1', name: 'Ciclo Básico', resolucion: 'Res. 3828/09', cursos: ['1°', '2°', '3°'], secciones: ['1°','2°','3°','4°','5°','6°','7°','8°','9°','10°','11°','12°'] },
-      { id: '2', name: 'Orientación Ciencias Sociales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] },
-      { id: '3', name: 'Orientación Ciencias Naturales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] },
-      { id: '4', name: 'Orientación Economía y Administración', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] }
+      { id: '1', name: 'Ciclo Básico', resolucion: 'Res. 3828/09', cursos: ['1°', '2°', '3°'], secciones: ['1°', '2°', '3°', '4°', '5°', '6°', '7°', '8°', '9°', '10°', '11°', '12°'] },
+      { id: '2', name: 'Orientación Ciencias Sociales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°', '2°', '3°', '4°'] },
+      { id: '3', name: 'Orientación Ciencias Naturales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°', '2°', '3°', '4°'] },
+      { id: '4', name: 'Orientación Economía y Administración', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°', '2°', '3°', '4°'] }
     ]);
   };
 
@@ -1484,8 +1485,8 @@ function PlanEstudiosManagement() {
     } else {
       await addDoc(collection(db, 'orientaciones'), newO);
     }
-    setNewO({ name: '', resolucion: '', cursos: [] }); 
-    setEditing(null); 
+    setNewO({ name: '', resolucion: '', cursos: [] });
+    setEditing(null);
     fetchO();
   };
 
@@ -1506,8 +1507,8 @@ function PlanEstudiosManagement() {
   const toggleSeccion = (s) => {
     setNewO(prev => ({
       ...prev,
-      secciones: (prev.secciones || []).includes(s) 
-        ? prev.secciones.filter(x => x !== s) 
+      secciones: (prev.secciones || []).includes(s)
+        ? prev.secciones.filter(x => x !== s)
         : [...(prev.secciones || []), s]
     }));
   };
@@ -1515,53 +1516,53 @@ function PlanEstudiosManagement() {
   return (
     <>
       <div className="header-flex">
-         <div>
-           <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Gestionar Plan de Estudios</h1>
-           <p>Define las orientaciones disponibles para la titulación en ciclo superior.</p>
-         </div>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Gestionar Plan de Estudios</h1>
+          <p>Define las orientaciones disponibles para la titulación en ciclo superior.</p>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: '2rem' }}>
-         <h4 style={{ marginBottom: '1.5rem' }}>{editing ? 'Editar Orientación / Plan' : 'Crear Nueva Orientación / Plan'}</h4>
-         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
-           <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label>Nombre de la Orientación / Propuesta</label>
-              <input className="input-field" value={newO.name} onChange={e => setNewO({...newO, name: e.target.value})} placeholder="Ej: Ciclo Básico o Orientación Ciencias Sociales" />
-           </div>
-           <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label>Resolución Ministerial</label>
-              <input className="input-field" value={newO.resolucion} onChange={e => setNewO({...newO, resolucion: e.target.value})} placeholder="Ej: Res. 3828/09" />
-           </div>
-         </div>
-         
-         <div className="form-group" style={{ marginBottom: '2rem' }}>
-            <label style={{ marginBottom: '1rem' }}>Años que engloba</label>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {['1°', '2°', '3°', '4°', '5°', '6°'].map(c => (
-                <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', padding: '0.5rem 0.8rem', background: 'var(--bg)', borderRadius: '10px' }}>
-                  <input type="checkbox" checked={newO.cursos.includes(c)} onChange={() => toggleCurso(c)} style={{ width: '16px', height: '16px' }} />
-                  <span style={{ fontWeight: 600 }}>{c}</span>
-                </label>
-              ))}
-            </div>
-         </div>
+        <h4 style={{ marginBottom: '1.5rem' }}>{editing ? 'Editar Orientación / Plan' : 'Crear Nueva Orientación / Plan'}</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label>Nombre de la Orientación / Propuesta</label>
+            <input className="input-field" value={newO.name} onChange={e => setNewO({ ...newO, name: e.target.value })} placeholder="Ej: Ciclo Básico o Orientación Ciencias Sociales" />
+          </div>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label>Resolución Ministerial</label>
+            <input className="input-field" value={newO.resolucion} onChange={e => setNewO({ ...newO, resolucion: e.target.value })} placeholder="Ej: Res. 3828/09" />
+          </div>
+        </div>
 
-         <div className="form-group">
-            <label style={{ marginBottom: '1rem' }}>Secciones Habilitadas</label>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {Array.from({length: 12}, (_, i) => `${i+1}°`).map(s => (
-                <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', padding: '0.5rem 0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', minWidth: '65px' }}>
-                  <input type="checkbox" checked={(newO.secciones || []).includes(s)} onChange={() => toggleSeccion(s)} style={{ width: '16px', height: '16px' }} />
-                  <span style={{ fontWeight: 600 }}>{s}</span>
-                </label>
-              ))}
-            </div>
-         </div>
+        <div className="form-group" style={{ marginBottom: '2rem' }}>
+          <label style={{ marginBottom: '1rem' }}>Años que engloba</label>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {['1°', '2°', '3°', '4°', '5°', '6°'].map(c => (
+              <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', padding: '0.5rem 0.8rem', background: 'var(--bg)', borderRadius: '10px' }}>
+                <input type="checkbox" checked={newO.cursos.includes(c)} onChange={() => toggleCurso(c)} style={{ width: '16px', height: '16px' }} />
+                <span style={{ fontWeight: 600 }}>{c}</span>
+              </label>
+            ))}
+          </div>
+        </div>
 
-         <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-           <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>{editing ? 'Guardar Cambios' : 'Registrar Plan de Estudio'}</button>
-           {editing && <button className="btn" style={{ flex: 1, border: '1px solid var(--border)' }} onClick={() => {setEditing(null); setNewO({name:'', resolucion:'', cursos:[], secciones:[]});}}>Cancelar</button>}
-         </div>
+        <div className="form-group">
+          <label style={{ marginBottom: '1rem' }}>Secciones Habilitadas</label>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {Array.from({ length: 12 }, (_, i) => `${i + 1}°`).map(s => (
+              <label key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', padding: '0.5rem 0.8rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', minWidth: '65px' }}>
+                <input type="checkbox" checked={(newO.secciones || []).includes(s)} onChange={() => toggleSeccion(s)} style={{ width: '16px', height: '16px' }} />
+                <span style={{ fontWeight: 600 }}>{s}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+          <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>{editing ? 'Guardar Cambios' : 'Registrar Plan de Estudio'}</button>
+          {editing && <button className="btn" style={{ flex: 1, border: '1px solid var(--border)' }} onClick={() => { setEditing(null); setNewO({ name: '', resolucion: '', cursos: [], secciones: [] }); }}>Cancelar</button>}
+        </div>
       </div>
 
       <div className="table-wrapper">
@@ -1593,7 +1594,7 @@ function PlanEstudiosManagement() {
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button onClick={() => {setEditing(o.id); setNewO(o);}} style={{ background: 'none', border: 'none', color: '#f59e0b', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <button onClick={() => { setEditing(o.id); setNewO(o); }} style={{ background: 'none', border: 'none', color: '#f59e0b', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <Pencil size={14} /> Editar
                     </button>
                     <button onClick={() => handleDel(o.id)} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -1612,11 +1613,11 @@ function PlanEstudiosManagement() {
 
 
 function GlobalSettings() {
-  const [config, setConfig] = useState({ 
-    maintenance: false, 
-    loading: false, 
+  const [config, setConfig] = useState({
+    maintenance: false,
+    loading: false,
     allowedRolesMaintenance: ['admin'],
-    allowedRolesCarga: ['admin'] 
+    allowedRolesCarga: ['admin']
   });
   const [roles, setRoles] = useState([]);
 
@@ -1654,7 +1655,7 @@ function GlobalSettings() {
     const newList = currentList.includes(roleId)
       ? currentList.filter(r => r !== roleId)
       : [...currentList, roleId];
-    
+
     const newConfig = { ...config, [listField]: newList };
     setConfig(newConfig);
     await updateDoc(doc(db, 'settings', 'global'), { [listField]: newList });
@@ -1687,10 +1688,10 @@ function GlobalSettings() {
             {roles.map(role => (
               <label key={role.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg)', borderRadius: '10px', cursor: 'pointer' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 500, textTransform: 'capitalize' }}>{role.name || role.id}</span>
-                <input 
-                  type="checkbox" 
-                  checked={config.allowedRolesMaintenance?.includes(role.id)} 
-                  onChange={() => toggleRoleAccess('allowedRolesMaintenance', role.id)} 
+                <input
+                  type="checkbox"
+                  checked={config.allowedRolesMaintenance?.includes(role.id)}
+                  onChange={() => toggleRoleAccess('allowedRolesMaintenance', role.id)}
                   disabled={role.id === 'admin'}
                 />
               </label>
@@ -1715,10 +1716,10 @@ function GlobalSettings() {
             {roles.map(role => (
               <label key={role.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg)', borderRadius: '10px', cursor: 'pointer' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 500, textTransform: 'capitalize' }}>{role.name || role.id}</span>
-                <input 
-                  type="checkbox" 
-                  checked={config.allowedRolesCarga?.includes(role.id)} 
-                  onChange={() => toggleRoleAccess('allowedRolesCarga', role.id)} 
+                <input
+                  type="checkbox"
+                  checked={config.allowedRolesCarga?.includes(role.id)}
+                  onChange={() => toggleRoleAccess('allowedRolesCarga', role.id)}
                   disabled={role.id === 'admin'}
                 />
               </label>
@@ -1738,8 +1739,8 @@ function RoleManagement() {
   const [newRole, setNewRole] = useState({ name: '', permissions: [] });
 
   const availablePermissions = [
-    { 
-      id: 'personal', label: 'Mi Personal', 
+    {
+      id: 'personal', label: 'Mi Personal',
       sub: [
         { id: 'personal/database', label: 'Base de Datos Personal' },
         { id: 'personal/nomina', label: 'Nómina Personal' },
@@ -1748,29 +1749,29 @@ function RoleManagement() {
       ]
     },
     { id: 'escuela', label: 'Mi Escuela' },
-    { 
-      id: 'estudiantes', label: 'Mis Estudiantes', 
+    {
+      id: 'estudiantes', label: 'Mis Estudiantes',
       sub: [
         { id: 'estudiantes/database', label: 'Base de Datos' },
         { id: 'estudiantes/nominas', label: 'Nóminas' }
-      ] 
+      ]
     },
-    { 
-      id: 'planillas', label: 'Mis Planillas', 
+    {
+      id: 'planillas', label: 'Mis Planillas',
       sub: [
         { id: 'planillas/calificacion', label: 'Planillas Calificación' },
         { id: 'planillas/seguimiento', label: 'Planillas Seguimiento' }
-      ] 
+      ]
     },
     { id: 'boletin', label: 'Boletín Digital' },
-    { 
-      id: 'ajustes', label: 'Configuración', 
+    {
+      id: 'ajustes', label: 'Configuración',
       sub: [
         { id: 'ajustes/usuarios', label: 'Gestión Usuarios' },
         { id: 'ajustes/sistema', label: 'Configuración Global' },
         { id: 'ajustes/roles', label: 'Gestión Roles' },
         { id: 'ajustes/plan', label: 'Plan de Estudios' }
-      ] 
+      ]
     },
   ];
 
@@ -1800,7 +1801,7 @@ function RoleManagement() {
         .replace(/[\u0300-\u036f]/g, "") // Remueve acentos
         .trim()
         .replace(/\s+/g, '-');
-      
+
       // Si estamos editando y el ID cambió (cambiaron el nombre), eliminamos el anterior
       if (editingId && editingId !== normalizedId) {
         await deleteDoc(doc(db, 'roles', editingId));
@@ -1826,9 +1827,9 @@ function RoleManagement() {
     if (roleId === 'admin' || roleId === 'administrador') {
       return alert("Por razones de seguridad, el rol del Administrador principal no puede ser eliminado.");
     }
-    
+
     if (!window.confirm("¿Estás seguro de eliminar este rol de acceso?")) return;
-    
+
     try {
       await deleteDoc(doc(db, 'roles', roleId));
       await fetchRoles();
@@ -1848,7 +1849,7 @@ function RoleManagement() {
     setNewRole(prev => {
       const section = availablePermissions.find(s => s.id === permId);
       const isParent = !!(section && section.sub);
-      
+
       let nextPerms = [...prev.permissions];
 
       if (isParent) {
@@ -1861,7 +1862,7 @@ function RoleManagement() {
           nextPerms = nextPerms.filter(p => !allTargetIds.includes(p));
         } else {
           // Asegurar de que todo el bloque esté seleccionado (DAR TODO)
-          allTargetIds.forEach(id => { if(!nextPerms.includes(id)) nextPerms.push(id) });
+          allTargetIds.forEach(id => { if (!nextPerms.includes(id)) nextPerms.push(id) });
         }
       } else {
         // Es un permiso individual (o sección sin sub)
@@ -1897,7 +1898,7 @@ function RoleManagement() {
           <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Gestión de Roles</h1>
           <p>Define con precisión los accesos granulares a secciones y sub-módulos.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); setNewRole({name:'', permissions:[]}); }}>
+        <button className="btn btn-primary" onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); setNewRole({ name: '', permissions: [] }); }}>
           {showAddForm ? <X size={20} /> : <Plus size={20} />} {showAddForm ? 'Cerrar' : 'Nuevo Rol'}
         </button>
       </div>
@@ -1907,46 +1908,46 @@ function RoleManagement() {
           <h3 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Editar Permisos del Rol' : 'Configurar Nuevo Rol de Acceso'}</h3>
           <div className="form-group">
             <label>Nombre del Rol</label>
-            <input className="input-field" value={newRole.name} onChange={e => setNewRole({...newRole, name: e.target.value})} placeholder="Ej: Secretaria" required />
+            <input className="input-field" value={newRole.name} onChange={e => setNewRole({ ...newRole, name: e.target.value })} placeholder="Ej: Secretaria" required />
           </div>
           <div className="form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-               <label>Mapa de Permisos (Secciones y Sub-módulos)</label>
-               <button type="button" className="btn" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem', background: '#f8fafc', border: '1px solid var(--border)' }} onClick={() => {
-                  const allIds = availablePermissions.flatMap(s => [s.id, ...(s.sub ? s.sub.map(sub => sub.id) : [])]);
-                  const isFull = allIds.every(id => newRole.permissions.includes(id));
-                  setNewRole(prev => ({ ...prev, permissions: isFull ? [] : allIds }));
-               }}>
-                  {availablePermissions.flatMap(s => [s.id, ...(s.sub ? s.sub.map(sub => sub.id) : [])]).every(id => newRole.permissions.includes(id)) ? 'Deseleccionar Todo' : 'Acceso Total Plataforma'}
-               </button>
+              <label>Mapa de Permisos (Secciones y Sub-módulos)</label>
+              <button type="button" className="btn" style={{ fontSize: '0.8rem', padding: '0.4rem 1rem', background: '#f8fafc', border: '1px solid var(--border)' }} onClick={() => {
+                const allIds = availablePermissions.flatMap(s => [s.id, ...(s.sub ? s.sub.map(sub => sub.id) : [])]);
+                const isFull = allIds.every(id => newRole.permissions.includes(id));
+                setNewRole(prev => ({ ...prev, permissions: isFull ? [] : allIds }));
+              }}>
+                {availablePermissions.flatMap(s => [s.id, ...(s.sub ? s.sub.map(sub => sub.id) : [])]).every(id => newRole.permissions.includes(id)) ? 'Deseleccionar Todo' : 'Acceso Total Plataforma'}
+              </button>
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
               {availablePermissions.map(sec => {
                 const subIds = sec.sub ? sec.sub.map(s => s.id) : [];
                 const hasFullSec = [sec.id, ...subIds].every(id => newRole.permissions.includes(id));
-                
+
                 return (
                   <div key={sec.id} style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${hasFullSec ? 'var(--color-primary)' : '#e2e8f0'}`, boxShadow: hasFullSec ? '0 8px 20px var(--color-primary)11' : 'none' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                         <input type="checkbox" checked={newRole.permissions.includes(sec.id)} onChange={() => togglePermission(sec.id)} style={{ width: '18px', height: '18px' }} />
-                         <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--color-primary)' }}>{sec.label}</span>
-                       </label>
-                       {sec.sub && (
-                         <button type="button" style={{ 
-                            fontSize: '0.65rem', 
-                            fontWeight: 800, 
-                            padding: '0.2rem 0.5rem', 
-                            borderRadius: '4px', 
-                            border: '1px solid var(--color-primary)', 
-                            background: hasFullSec ? 'var(--color-primary)' : 'transparent',
-                            color: hasFullSec ? 'white' : 'var(--color-primary)',
-                            cursor: 'pointer'
-                         }} onClick={() => togglePermission(sec.id)}>
-                            {hasFullSec ? 'ACCESO TOTAL' : 'DAR TODO'}
-                         </button>
-                       )}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={newRole.permissions.includes(sec.id)} onChange={() => togglePermission(sec.id)} style={{ width: '18px', height: '18px' }} />
+                        <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--color-primary)' }}>{sec.label}</span>
+                      </label>
+                      {sec.sub && (
+                        <button type="button" style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 800,
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--color-primary)',
+                          background: hasFullSec ? 'var(--color-primary)' : 'transparent',
+                          color: hasFullSec ? 'white' : 'var(--color-primary)',
+                          cursor: 'pointer'
+                        }} onClick={() => togglePermission(sec.id)}>
+                          {hasFullSec ? 'ACCESO TOTAL' : 'DAR TODO'}
+                        </button>
+                      )}
                     </div>
 
                     {sec.sub && (
@@ -1982,24 +1983,24 @@ function RoleManagement() {
                 <span className="badge" style={{ background: 'var(--bg-admin)', color: 'var(--color-admin)' }}>{role.permissions.filter(p => !p.includes('/')).length} secciones / {role.permissions.filter(p => p.includes('/')).length} sub-modulos</span>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => startEdit(role)} className="btn" style={{ padding: '0.5rem', border: '1px solid var(--border)', color: '#f59e0b' }} title="Editar"><Pencil size={18} /></button>
-                  <button onClick={() => handleDeleteRole(role.id)} className="btn" style={{ padding: '0.5rem', border: '1px solid var(--border)', color: '#ef4444' }} title="Eliminar"><Trash2 size={18} /></button>
+                <button onClick={() => startEdit(role)} className="btn" style={{ padding: '0.5rem', border: '1px solid var(--border)', color: '#f59e0b' }} title="Editar"><Pencil size={18} /></button>
+                <button onClick={() => handleDeleteRole(role.id)} className="btn" style={{ padding: '0.5rem', border: '1px solid var(--border)', color: '#ef4444' }} title="Eliminar"><Trash2 size={18} /></button>
               </div>
             </div>
-            
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', padding: '1.25rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               {role.permissions.map(p => (
-                <div key={p} style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.3rem', 
-                  fontSize: '0.75rem', 
-                  background: p.includes('/') ? 'white' : 'var(--color-primary)', 
-                  color: p.includes('/') ? 'var(--color-primary)' : 'white', 
-                  padding: '0.3rem 0.6rem', 
-                  borderRadius: '6px', 
-                  fontWeight: 700, 
-                  border: p.includes('/') ? '1px solid var(--color-primary)33' : 'none' 
+                <div key={p} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.75rem',
+                  background: p.includes('/') ? 'white' : 'var(--color-primary)',
+                  color: p.includes('/') ? 'var(--color-primary)' : 'white',
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  border: p.includes('/') ? '1px solid var(--color-primary)33' : 'none'
                 }}>
                   {p.includes('/') ? '#' : <Check size={12} />} {getLabelById(p)}
                 </div>
@@ -2026,7 +2027,7 @@ function UserManagement() {
     try {
       const uSnap = await getDocs(collection(db, 'users'));
       setUsers(uSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      
+
       const rSnap = await getDocs(collection(db, 'roles'));
       setAvailableRoles(rSnap.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
     } catch (error) {
@@ -2091,7 +2092,7 @@ function UserManagement() {
                   <td>{user.email}</td>
                   <td style={{ fontFamily: 'monospace' }}>{user.dni}</td>
                   <td>
-                    <span className="badge" style={{ 
+                    <span className="badge" style={{
                       background: (user.role === 'admin' || user.role === 'administrador') ? 'var(--bg-admin)' : '#eff6ff',
                       color: (user.role === 'admin' || user.role === 'administrador') ? 'var(--color-admin)' : '#2563eb'
                     }}>
@@ -2099,8 +2100,8 @@ function UserManagement() {
                     </span>
                   </td>
                   <td>
-                    <select 
-                      className="input-field" 
+                    <select
+                      className="input-field"
                       style={{ padding: '0.4rem', fontSize: '0.85rem', width: '100%', maxWidth: '200px' }}
                       value={user.role}
                       onChange={(e) => handleRoleChange(user.id, e.target.value)}
@@ -2163,6 +2164,13 @@ function AdminHome() {
           href="/dashboard/practicas"
         />
         <DashboardCard
+          color="#ec4899"
+          title="GPD - Gestión de Prácticas Docentes"
+          description="Visualiza practicantes registrados y listados organizados por ISFD."
+          icon={<School size={28} />}
+          href="/dashboard/gpd"
+        />
+        <DashboardCard
           color="#8b5cf6"
           title="Mis Planillas"
           description="Planillas de calificación, asistencia y seguimiento."
@@ -2198,35 +2206,35 @@ function ConfigHome() {
       </div>
 
       <DashboardGrid>
-        <DashboardCard 
-          color="#3b82f6" 
-          title="Gestión de Usuarios" 
-          description="Crea, edita y suspende cuentas de docentes y alumnos." 
-          icon={<Users size={28} />} 
+        <DashboardCard
+          color="#3b82f6"
+          title="Gestión de Usuarios"
+          description="Crea, edita y suspende cuentas de docentes y alumnos."
+          icon={<Users size={28} />}
           href="/dashboard/ajustes/usuarios"
           target="_self"
         />
-        <DashboardCard 
-          color="#f59e0b" 
-          title="Gestión de Plataforma" 
-          description="Ajustes técnicos, variables globales y mantenimiento." 
-          icon={<Settings size={28} />} 
+        <DashboardCard
+          color="#f59e0b"
+          title="Gestión de Plataforma"
+          description="Ajustes técnicos, variables globales y mantenimiento."
+          icon={<Settings size={28} />}
           href="/dashboard/ajustes/sistema"
           target="_self"
         />
-        <DashboardCard 
-          color="#ef4444" 
-          title="Gestión de Roles" 
-          description="Define y modifica permisos para cada tipo de cuenta." 
-          icon={<Shield size={28} />} 
+        <DashboardCard
+          color="#ef4444"
+          title="Gestión de Roles"
+          description="Define y modifica permisos para cada tipo de cuenta."
+          icon={<Shield size={28} />}
           href="/dashboard/ajustes/roles"
           target="_self"
         />
-        <DashboardCard 
-          color="#8b5cf6" 
-          title="Gestionar Plan de Estudios" 
-          description="Configura orientaciones y planes de estudio institucionales." 
-          icon={<Book size={28} />} 
+        <DashboardCard
+          color="#8b5cf6"
+          title="Gestionar Plan de Estudios"
+          description="Configura orientaciones y planes de estudio institucionales."
+          icon={<Book size={28} />}
           href="/dashboard/ajustes/plan"
           target="_self"
         />
@@ -2246,7 +2254,7 @@ export default function AdminDashboard() {
         const snap = await getDoc(adminRef);
         const allPerms = [
           'personal', 'personal/database', 'personal/nomina', 'personal/pof', 'personal/novedades',
-          'escuela', 'boletin', 
+          'escuela', 'boletin',
           'estudiantes', 'estudiantes/database', 'estudiantes/nominas',
           'planillas', 'planillas/calificacion', 'planillas/seguimiento',
           'ajustes', 'ajustes/usuarios', 'ajustes/sistema', 'ajustes/roles', 'ajustes/plan'
@@ -2326,6 +2334,7 @@ export default function AdminDashboard() {
         <Route path="ajustes/sistema" element={<GlobalSettings />} />
         <Route path="ajustes/roles" element={<RoleManagement />} />
         <Route path="ajustes/plan" element={<PlanEstudiosManagement />} />
+        <Route path="gpd/*" element={<GPDApp />} />
         <Route path="*" element={<AdminHome />} />
       </Routes>
     </MainLayout>

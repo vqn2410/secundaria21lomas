@@ -7,6 +7,8 @@ import Login from './pages/Login';
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const News = lazy(() => import('./pages/News'));
 const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
+const GPDRegistro = lazy(() => import('./pages/GPDRegistro'));
+const GPDPracticanteApp = lazy(() => import('./pages/GPDPracticanteApp'));
 const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 const Register = lazy(() => import('./pages/Register'));
 
@@ -24,6 +26,8 @@ function App() {
           <Route path="/noticias" element={<News />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/gpd-registro" element={<GPDRegistro />} />
+          <Route path="/gpd-panel/*" element={<GPDPracticanteApp />} />
           <Route path="/dashboard/*" element={<DashboardRouter />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="*" element={<Navigate to="/" replace />} />

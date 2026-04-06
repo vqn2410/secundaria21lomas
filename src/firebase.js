@@ -16,3 +16,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// Initialize GPD Secondary Firebase App
+const gpdFirebaseConfig = {
+  apiKey: "AIzaSyALHo591XYOPUr7UIcVKCNDCLR3eMWxZkA",
+  authDomain: "practicasdocentesensam.firebaseapp.com",
+  projectId: "practicasdocentesensam",
+  storageBucket: "practicasdocentesensam.firebasestorage.app",
+  messagingSenderId: "587921334213",
+  appId: "1:587921334213:web:18387b8ee924c1f1e6b5ac",
+  measurementId: "G-9KHJ5K5HRY"
+};
+
+const gpdApp = initializeApp(gpdFirebaseConfig, "GPD_APP");
+export const gpdAuth = getAuth(gpdApp);
+export const gpdDb = getFirestore(gpdApp);
