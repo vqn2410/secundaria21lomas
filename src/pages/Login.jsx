@@ -82,8 +82,8 @@ export default function Login() {
           <div style={{ background: 'var(--text)', color: 'white', padding: '12px', borderRadius: '12px', marginBottom: '1rem', transition: 'var(--transition)' }}>
             <BookOpen size={32} />
           </div>
-          <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>EES 21 - Gestión</h2>
-          <p style={{ textAlign: 'center' }}>Plataforma de Prácticas Escolares</p>
+          <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>EES 21</h2>
+          <p style={{ textAlign: 'center' }}>Portal ENSAM | EES N° 21 - Lomas de Zamora</p>
         </div>
 
         <form onSubmit={handleLogin}>

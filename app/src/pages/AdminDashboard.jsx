@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Plus, Check, Users, FileText, Settings, LayoutGrid, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key } from 'lucide-react';
+import { Plus, Check, Users, User, FileText, Settings, LayoutGrid, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key, UserCheck } from 'lucide-react';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { db, auth, gpdDb } from '../firebase';
 import MainLayout from '../components/MainLayout';
@@ -150,8 +150,10 @@ const ESCUELA_SECTIONS = [
 
 const PRACTICAS_SECTIONS = [
   { name: 'Gestión Institutos', path: '/dashboard/practicas/institutos' },
-  { name: 'Docentes Práctica', path: '/dashboard/practicas/docentes' },
-  { name: 'Estudiantes Práctica', path: '/dashboard/practicas/estudiantes' },
+  { name: 'Gestión Profesorados', path: '/dashboard/practicas/profesorados' },
+  { name: 'Gestión de Docentes de Práctica', path: '/dashboard/practicas/docentes' },
+  { name: 'Base de Datos de Practicantes', path: '/dashboard/practicas/usuarios' },
+  { name: 'Nómina de Prácticas', path: '/dashboard/practicas/estudiantes' },
   { name: 'Gestión Accesos', path: '/dashboard/practicas/accesos' }
 ];
 
@@ -1044,9 +1046,25 @@ function PracticaHome() {
           target="_self"
         />
         <DashboardCard 
+          color="#8b5cf6" 
+          title="Gestión de Profesorados" 
+          description="Administra las carreras y materias habilitadas para los alumnos." 
+          icon={<Book size={28} />} 
+          href="/dashboard/practicas/profesorados"
+          target="_self"
+        />
+        <DashboardCard 
           color="#10b981" 
-          title="Gestión de Estudiantes de Práctica" 
-          description="Nómina detallada de alumnos residentes y su seguimiento pedagógico." 
+          title="Base de Datos de Practicantes" 
+          description="Nómina de alumnos registrados vía formulario con foto 4x4." 
+          icon={<UserCheck size={28} />} 
+          href="/dashboard/practicas/usuarios"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#10b981" 
+          title="Nómina de Prácticas" 
+          description="Listados detallados por materia y seguimiento escolar." 
           icon={<GraduationCap size={28} />} 
           href="/dashboard/practicas/estudiantes"
           target="_self"
@@ -1064,8 +1082,323 @@ function PracticaHome() {
   );
 }
 
+function PracticaProfesorados() {
+  const [profesorados, setProfesorados] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({ nombre: '', materias: '' });
+
+  const fetchProfesorados = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(gpdDb, 'profesorados'));
+      setProfesorados(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchProfesorados(); }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!formData.nombre) return;
+    try {
+      if (formData.id) await updateDoc(doc(gpdDb, 'profesorados', formData.id), formData);
+      else await addDoc(collection(gpdDb, 'profesorados'), formData);
+      setFormData({ nombre: '', materias: '' });
+      setIsAdding(false);
+      fetchProfesorados();
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar profesorado?")) return;
+    await deleteDoc(doc(gpdDb, 'profesorados', id));
+    fetchProfesorados();
+  };
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/profesorados" subSections={PRACTICAS_SECTIONS} />
+      <div className="header-flex">
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gestión de Profesorados</h1>
+        {!isAdding && <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Agregar Profesorado</button>}
+      </div>
+
+      {isAdding && (
+        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid var(--color-primary)' }}>
+          <form onSubmit={handleSave}>
+            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
+              <div className="form-group">
+                <label>Nombre del Profesorado *</label>
+                <input required className="input-field" placeholder="Ej: Prof. de Biología" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Códigos Materias (Separados por coma)</label>
+                <input className="input-field" placeholder="Ej: BLG, CNT, CDT" value={formData.materias} onChange={e => setFormData({...formData, materias: e.target.value})} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+              <button type="button" className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Guardar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead><tr><th>Nombre</th><th>Materias Asociadas</th><th>Acciones</th></tr></thead>
+          <tbody>
+            {profesorados.map(p => (
+              <tr key={p.id}>
+                <td style={{ fontWeight: 700 }}>{p.nombre}</td>
+                <td>{p.materias}</td>
+                <td>
+                  <button className="btn" onClick={() => { setFormData(p); setIsAdding(true); }}><Pencil size={16} /></button>
+                  <button className="btn" onClick={() => handleDelete(p.id)} style={{ color: 'red' }}><Trash2 size={16} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PracticaUsuarios() {
+  const [usuarios, setUsuarios] = useState([]);
+  const [institutos, setInstitutos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showLegajo, setShowLegajo] = useState(null); // Documento del usuario seleccionado para ver legajo
+  const [historial, setHistorial] = useState([]);
+  const [form, setForm] = useState({ 
+    nombre: '', apellido: '', dni: '', email: '', telefono: '', 
+    instituto: '', profesorado: '', direccion: '', localidad: '', salud: '', status: 'Pendiente' 
+  });
+
+  const fetchUsuarios = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const snap = await getDocs(collection(gpdDb, 'practicantes'));
+      setUsuarios(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      
+      const istSnap = await getDocs(collection(gpdDb, 'institutos'));
+      setInstitutos(istSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { setError(err.message); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchUsuarios(); }, []);
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await updateDoc(doc(gpdDb, 'practicantes', id), { status: newStatus });
+      fetchUsuarios();
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateDoc(doc(gpdDb, 'practicantes', form.id), form);
+      setIsEditing(false);
+      fetchUsuarios();
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este estudiante y todo su legajo digital?")) return;
+    try {
+      await deleteDoc(doc(gpdDb, 'practicantes', id));
+      fetchUsuarios();
+    } catch (err) { alert(err.message); }
+  };
+
+  const openLegajo = async (u) => {
+    setShowLegajo(u);
+    setHistorial([]);
+    try {
+      const q = query(collection(gpdDb, 'practicas_docentes'), where('residente', '==', `${u.apellido} ${u.nombre}`.toUpperCase()));
+      const snap = await getDocs(q);
+      setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { console.error(err); }
+  };
+
+  if (isEditing) {
+    return (
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/usuarios" subSections={PRACTICAS_SECTIONS} />
+        <div className="card">
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Modificar Datos de Practicante</h1>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group"><label>Nombre</label><input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} /></div>
+            <div className="form-group"><label>Apellido</label><input className="input-field" value={form.apellido} onChange={e => setForm({...form, apellido: e.target.value})} /></div>
+            <div className="form-group"><label>DNI</label><input className="input-field" value={form.dni} onChange={e => setForm({...form, dni: e.target.value})} /></div>
+            <div className="form-group"><label>Email</label><input className="input-field" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+            <div className="form-group">
+              <label>ISFD / Instituto</label>
+              <select className="input-field" value={form.instituto} onChange={e => setForm({...form, instituto: e.target.value})}>
+                <option value="">Seleccione ISFD...</option>
+                {institutos.map(i => <option key={i.id} value={i.nombre}>{i.nombre}</option>)}
+              </select>
+            </div>
+            <div className="form-group"><label>Profesorado / Carrera</label><input className="input-field" value={form.profesorado} onChange={e => setForm({...form, profesorado: e.target.value})} /></div>
+            <div className="form-group"><label>Teléfono</label><input className="input-field" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} /></div>
+            <div className="form-group"><label>Dirección</label><input className="input-field" value={form.direccion} onChange={e => setForm({...form, direccion: e.target.value})} /></div>
+          </div>
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-primary" onClick={handleSave}>Guardar Cambios</button>
+            <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showLegajo) {
+    const u = showLegajo;
+    return (
+      <div>
+        <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/usuarios" subSections={PRACTICAS_SECTIONS} />
+        <div style={{ marginBottom: '2rem' }}>
+          <button className="btn" onClick={() => setShowLegajo(null)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ArrowLeft size={18} /> Volver a la Base de Datos
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-3" style={{ gap: '2rem' }}>
+          <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+            <div style={{ width: '150px', height: '150px', borderRadius: '12px', overflow: 'hidden', background: '#f1f5f9', border: '3px solid #ec4899', margin: '0 auto 1.5rem' }}>
+              {u.photoURL ? <img src={u.photoURL} alt="Foto 4x4" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={60} style={{ marginTop: '45px' }} />}
+            </div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{u.apellido}, {u.nombre}</h2>
+            <p style={{ color: '#ec4899', fontWeight: 700 }}>{u.profesorado}</p>
+            <div className="badge" style={{ marginTop: '1rem', background: '#dcfce7', color: '#15803d' }}>{u.status || 'Pendiente'}</div>
+          </div>
+          
+          <div className="card" style={{ gridColumn: 'span 2' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Información Personal y Académica</h3>
+            <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+              <div><p style={{ fontSize: '0.75rem', color: '#64748b' }}>DNI:</p><p style={{ fontWeight: 600 }}>{u.dni}</p></div>
+              <div><p style={{ fontSize: '0.75rem', color: '#64748b' }}>Email:</p><p style={{ fontWeight: 600 }}>{u.email}</p></div>
+              <div><p style={{ fontSize: '0.75rem', color: '#64748b' }}>Teléfono:</p><p style={{ fontWeight: 600 }}>{u.telefono || '-'}</p></div>
+              <div><p style={{ fontSize: '0.75rem', color: '#64748b' }}>ISFD Origen:</p><p style={{ fontWeight: 600 }}>{u.instituto || '-'}</p></div>
+              <div><p style={{ fontSize: '0.75rem', color: '#64748b' }}>Dirección:</p><p style={{ fontWeight: 600 }}>{u.direccion || '-'}</p></div>
+              <div><p style={{ fontSize: '0.75rem', color: '#64748b' }}>Localidad:</p><p style={{ fontWeight: 600 }}>{u.localidad || '-'}</p></div>
+              <div style={{ gridColumn: 'span 2' }}><p style={{ fontSize: '0.75rem', color: '#64748b' }}>Planilla de Salud / Observaciones:</p><p style={{ fontWeight: 600 }}>{u.salud || 'Ninguna'}</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: '2rem' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem' }}>Historial de Inscripciones y Prácticas</h3>
+          {historial.length > 0 ? (
+            <table>
+              <thead><tr><th>Año/Ciclo</th><th>Materia (PID)</th><th>Curso</th><th>Estado</th></tr></thead>
+              <tbody>
+                {historial.map(h => (
+                  <tr key={h.id}>
+                    <td>{h.createdAt?.toDate?.().getFullYear() || '2024'}</td>
+                    <td>{PID_CATALOG[h.pid] || h.pid}</td>
+                    <td>{h.curso}</td>
+                    <td><span className="badge">{h.estado}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '8px', color: '#64748b' }}>
+              Este estudiante no registra inscripciones a cursos todavía.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/usuarios" subSections={PRACTICAS_SECTIONS} />
+      <div className="header-flex">
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Base de Datos de Practicantes ({usuarios.length})</h1>
+        <p style={{ color: '#64748b' }}>Usuarios registrados vía formulario (GPD).</p>
+      </div>
+
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+          <strong>Error de Carga:</strong> {error}
+        </div>
+      )}
+
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Foto</th>
+              <th>Estudiante</th>
+              <th>DNI</th>
+              <th>Contacto</th>
+              <th>ISFD / Carrera</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {usuarios.map(u => (
+              <tr key={u.id}>
+                <td>
+                  <div style={{ width: '50px', height: '50px', borderRadius: '8px', overflow: 'hidden', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                    {u.photoURL ? <img src={u.photoURL} alt="4x4" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <User size={20} style={{ margin: '15px' }} />}
+                  </div>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 800 }}>{u.nombre} {u.apellido}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>ID: {u.id.substring(0,8)}...</div>
+                </td>
+                <td style={{ fontWeight: 600 }}>{u.dni}</td>
+                <td>
+                  <div style={{ fontSize: '0.8rem', color: '#3b82f6' }}>{u.email}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.telefono}</div>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{u.instituto}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#ec4899' }}>{u.profesorado}</div>
+                </td>
+                <td>
+                  <select 
+                    style={{ fontSize: '0.75rem', padding: '0.25rem', borderRadius: '4px' }}
+                    value={u.status || 'Pendiente'}
+                    onChange={(e) => handleStatusChange(u.id, e.target.value)}
+                  >
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Activo">Aprobar</option>
+                    <option value="Inactivo">Inhabilitar</option>
+                  </select>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn" onClick={() => openLegajo(u)} title="Ver Legajo e Historial" style={{ padding: '0.4rem', background: '#f1f5f9', color: '#6366f1' }}><FileSearch size={16} /></button>
+                    <button className="btn" onClick={() => { setForm(u); setIsEditing(true); }} title="Modificar Datos" style={{ padding: '0.4rem' }}><Pencil size={16} /></button>
+                    <button className="btn" onClick={() => handleDelete(u.id)} title="Eliminar" style={{ padding: '0.4rem', color: '#ef4444' }}><Trash2 size={16} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {usuarios.length === 0 && !loading && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>No hay estudiantes registrados vía formulario aún.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function PracticaDocentes() {
   const [docentes, setDocentes] = useState([]);
+  const [institutos, setInstitutos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({ nombre: '', institute: '', email: '', telefono: '', dni: '' });
@@ -1074,16 +1407,21 @@ function PracticaDocentes() {
 
   const fetchDocentes = async () => {
     try {
-      const snap = await getDocs(collection(db, 'practica_supervisores'));
+      // Unificamos: Buscamos en 'docentes_practica' que es donde entran los registros por formulario
+      const snap = await getDocs(collection(gpdDb, 'docentes_practica'));
       setDocentes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
+      const istSnap = await getDocs(collection(gpdDb, 'institutos'));
+      setInstitutos(istSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
       setLoading(false);
     } catch (err) { console.error(err); }
   };
 
   const handleSave = async () => {
     if (!form.nombre) return alert("Hacen falta datos");
-    if (form.id) await updateDoc(doc(db, 'practica_supervisores', form.id), form);
-    else await addDoc(collection(db, 'practica_supervisores'), form);
+    if (form.id) await updateDoc(doc(gpdDb, 'docentes_practica', form.id), form);
+    else await addDoc(collection(gpdDb, 'docentes_practica'), form);
     setIsEditing(false); fetchDocentes();
   };
 
@@ -1096,7 +1434,13 @@ function PracticaDocentes() {
             <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
               <div className="form-group"><label>Apellido y Nombre</label><input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} /></div>
               <div className="form-group"><label>DNI</label><input className="input-field" value={form.dni} onChange={e => setForm({...form, dni: e.target.value})} /></div>
-              <div className="form-group"><label>ISFD / Universidad</label><input className="input-field" value={form.institute} onChange={e => setForm({...form, institute: e.target.value})} /></div>
+              <div className="form-group">
+                <label>ISFD / Universidad</label>
+                <select className="input-field" value={form.institute} onChange={e => setForm({...form, institute: e.target.value})}>
+                   <option value="">Seleccione ISFD...</option>
+                   {institutos.map(i => <option key={i.id} value={i.nombre}>{i.nombre}</option>)}
+                </select>
+              </div>
               <div className="form-group"><label>Email de contacto</label><input className="input-field" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
               <div className="form-group"><label>Teléfono</label><input className="input-field" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} /></div>
            </div>
@@ -1140,10 +1484,11 @@ function PracticaDocentes() {
 
 function PracticaInstitutos() {
   const [institutos, setInstitutos] = useState([]);
+  const [profesorados, setProfesorados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
-    nombre: '', distrito: '', direccion: '', telefono: '', correo: '', director: ''
+    nombre: '', distrito: '', direccion: '', telefono: '', correo: '', director: '', profesorados: []
   });
 
   const fetchInstitutos = async () => {
@@ -1151,6 +1496,9 @@ function PracticaInstitutos() {
     try {
       const snap = await getDocs(collection(gpdDb, 'institutos'));
       setInstitutos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      
+      const pSnap = await getDocs(collection(gpdDb, 'profesorados'));
+      setProfesorados(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
     }
@@ -1170,7 +1518,7 @@ function PracticaInstitutos() {
       } else {
         await addDoc(collection(gpdDb, 'institutos'), formData);
       }
-      setFormData({ nombre: '', distrito: '', direccion: '', telefono: '', correo: '', director: '' });
+      setFormData({ nombre: '', distrito: '', direccion: '', telefono: '', correo: '', director: '', profesorados: [] });
       setIsAdding(false);
       fetchInstitutos();
     } catch (err) {
@@ -1234,6 +1582,27 @@ function PracticaInstitutos() {
                 <input className="input-field" value={formData.director} onChange={e => setFormData({...formData, director: e.target.value})} />
               </div>
             </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={{ fontWeight: 700 }}>Profesorados que dicta el Instituto:</label>
+                  <button type="button" onClick={() => navigate('/dashboard/practicas/profesorados')} style={{ fontSize: '0.7rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>+ Nuevo Profesorado</button>
+               </div>
+               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  {profesorados.map(p => (
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={formData.profesorados?.includes(p.nombre)} onChange={e => {
+                        const list = formData.profesorados || [];
+                        if (e.target.checked) setFormData({...formData, profesorados: [...list, p.nombre]});
+                        else setFormData({...formData, profesorados: list.filter(item => item !== p.nombre)});
+                      }} />
+                      {p.nombre}
+                    </label>
+                  ))}
+                  {profesorados.length === 0 && <p style={{ gridColumn: 'span 3', fontSize: '0.8rem', color: '#64748b' }}>No hay profesorados creados. Ve a "Gestión Profesorados" primero.</p>}
+               </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
               <button type="submit" className="btn btn-primary" style={{ background: '#3b82f6' }}>{formData.id ? 'Guardar Cambios' : 'Guardar Instituto'}</button>
             </div>
@@ -1247,7 +1616,7 @@ function PracticaInstitutos() {
             <thead style={{ background: '#f8fafc' }}>
               <tr>
                 <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Instituto Superior</th>
-                <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Distrito</th>
+                <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Oferta Académica</th>
                 <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>Contacto</th>
                 <th style={{ padding: '1rem', borderBottom: '2px solid #cbd5e1', textAlign: 'center' }}>Acciones</th>
               </tr>
@@ -1255,8 +1624,18 @@ function PracticaInstitutos() {
             <tbody>
               {institutos.map(inst => (
                 <tr key={inst.id}>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>{inst.nombre}</td>
-                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>{inst.distrito}</td>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: 700, color: '#1e293b' }}>
+                    {inst.nombre}
+                    <div style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b' }}>{inst.distrito}</div>
+                  </td>
+                  <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      {inst.profesorados?.map((p, i) => (
+                        <span key={i} style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>{p}</span>
+                      ))}
+                      {(!inst.profesorados || inst.profesorados.length === 0) && <span style={{ opacity: 0.5 }}>Sin profesorados asociados</span>}
+                    </div>
+                  </td>
                   <td style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0' }}>
                     <div style={{ fontSize: '0.85rem' }}>
                       <p><strong>Tel:</strong> {inst.telefono || '-'}</p>
@@ -1290,6 +1669,7 @@ function PracticaInstitutos() {
 
 function PracticaEstudiantes() {
   const [practicas, setPracticas] = useState([]);
+  const [institutos, setInstitutos] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ residente: '', isfd: '', pid: '', curso: '', seccion: '', coformador: '', estado: 'Activa' });
@@ -1298,23 +1678,27 @@ function PracticaEstudiantes() {
 
   const fetchPracticas = async () => {
     try {
-      const snap = await getDocs(collection(db, 'practicas_docentes'));
+      const snap = await getDocs(collection(gpdDb, 'practicas_docentes'));
       setPracticas(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
+      const istSnap = await getDocs(collection(gpdDb, 'institutos'));
+      setInstitutos(istSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      
       setLoading(false);
     } catch (err) { console.error(err); }
   };
 
   const handleSave = async () => {
     if (!form.residente || !form.isfd) return alert("Hacen falta datos");
-    if (form.id) await updateDoc(doc(db, 'practicas_docentes', form.id), form);
-    else await addDoc(collection(db, 'practicas_docentes'), form);
+    if (form.id) await updateDoc(doc(gpdDb, 'practicas_docentes', form.id), form);
+    else await addDoc(collection(gpdDb, 'practicas_docentes'), form);
     setIsEditing(false); fetchPracticas();
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar este listado de práctica?")) return;
     try {
-      await deleteDoc(doc(db, 'practicas_docentes', id));
+      await deleteDoc(doc(gpdDb, 'practicas_docentes', id));
       fetchPracticas();
     } catch (err) {
       console.error(err);
@@ -1329,8 +1713,35 @@ function PracticaEstudiantes() {
         <div className="card">
            <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Registro' : 'Nuevo Residente'}</h1>
            <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label>Buscar Estudiante por DNI (Opcional)</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input className="input-field" placeholder="Ingrese DNI..." id="dni-search" />
+                  <button className="btn btn-primary" type="button" onClick={async () => {
+                    const dni = document.getElementById('dni-search').value;
+                    if (!dni) return alert("Ingrese un DNI");
+                    try {
+                      const q = query(collection(gpdDb, 'practicantes'), where('dni', '==', dni));
+                      const snap = await getDocs(q);
+                      if (!snap.empty) {
+                        const u = snap.docs[0].data();
+                        setForm({ ...form, residente: `${u.apellido} ${u.nombre}`.toUpperCase(), isfd: u.instituto });
+                        alert(`Estudiante encontrado: ${u.nombre} ${u.apellido}`);
+                      } else {
+                        alert("No se encontró ningún estudiante con ese DNI en la base de datos.");
+                      }
+                    } catch (err) { alert(err.message); }
+                  }}>Validar DNI</button>
+                </div>
+              </div>
               <div className="form-group"><label>Apellido y Nombre (RESIDENTE)</label><input className="input-field" value={form.residente} onChange={e => setForm({...form, residente: e.target.value})} /></div>
-              <div className="form-group"><label>ISFD / Instituto</label><input className="input-field" value={form.isfd} onChange={e => setForm({...form, isfd: e.target.value})} /></div>
+              <div className="form-group">
+                <label>ISFD / Instituto</label>
+                <select className="input-field" value={form.isfd} onChange={e => setForm({...form, isfd: e.target.value})}>
+                  <option value="">Seleccione ISFD...</option>
+                  {institutos.map(i => <option key={i.id} value={i.nombre}>{i.nombre}</option>)}
+                </select>
+              </div>
               <div className="form-group">
                 <label>Materia (PID)</label>
                 <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
@@ -1357,6 +1768,16 @@ function PracticaEstudiantes() {
 
   return (
     <>
+      <style>{`
+        @media print {
+          .print-hide { display: none !important; }
+          .print-table { width: 100% !important; border-collapse: collapse; margin-top: 1rem; }
+          .print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+          .print-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
+          body { background: white !important; }
+          .sidebar, .navbar { display: none !important; }
+        }
+      `}</style>
       <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
       <div className="header-flex print-hide">
         <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Nómina / Listados de Práctica</h1>
@@ -2497,7 +2918,9 @@ export default function AdminDashboard() {
         <Route path="escuela" element={<MiEscuelaHome />} />
         <Route path="practicas" element={<PracticaHome />} />
         <Route path="practicas/institutos" element={<PracticaInstitutos />} />
+        <Route path="practicas/profesorados" element={<PracticaProfesorados />} />
         <Route path="practicas/docentes" element={<PracticaDocentes />} />
+        <Route path="practicas/usuarios" element={<PracticaUsuarios />} />
         <Route path="practicas/estudiantes" element={<PracticaEstudiantes />} />
         <Route path="practicas/accesos" element={<PracticaAccesos />} />
         <Route path="planillas" element={<PlanillasHome />} />

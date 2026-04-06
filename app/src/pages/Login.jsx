@@ -110,8 +110,8 @@ export default function Login() {
           <div style={{ background: 'var(--text)', color: 'white', padding: '12px', borderRadius: '12px', marginBottom: '1rem', transition: 'var(--transition)' }}>
             <BookOpen size={32} />
           </div>
-          <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>EES 21 - Gestión</h2>
-          <p style={{ textAlign: 'center' }}>Plataforma de Prácticas Escolares</p>
+          <h2 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>EES 21</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-light)', fontWeight: 500 }}>Portal ENSAM | EES N° 21 - Lomas de Zamora</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -135,6 +135,33 @@ export default function Login() {
             {loading ? 'Ingresando...' : 'Ingresar a la Plataforma'}
           </button>
         </form>
+
+        {/* Sección de Prácticas Docentes (GPD) */}
+        <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+          <p style={{ textAlign: 'center', fontSize: '0.9rem', marginBottom: '1rem', color: 'var(--text-light)', fontWeight: 700 }}>Módulo de Práctica Docente (GPD)</p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textAlign: 'center' }}>INGRESAR</p>
+              <button className="btn" style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8', padding: '0.6rem', fontSize: '0.8rem' }} onClick={() => navigate('/gpd-registro?login=true&rol=practicante')}>
+                Soy Practicante
+              </button>
+              <button className="btn" style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.6rem', fontSize: '0.8rem' }} onClick={() => navigate('/gpd-registro?login=true&rol=docente')}>
+                Soy Docente
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textAlign: 'center' }}>REGISTRARSE</p>
+              <button className="btn" style={{ background: 'white', color: '#db2777', border: '1px solid #fbcfe8', padding: '0.6rem', fontSize: '0.8rem' }} onClick={() => navigate('/gpd-registro?rol=practicante')}>
+                Estudiante
+              </button>
+              <button className="btn" style={{ background: 'white', color: '#2563eb', border: '1px solid #bfdbfe', padding: '0.6rem', fontSize: '0.8rem' }} onClick={() => navigate('/gpd-registro?rol=docente')}>
+                Referente
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

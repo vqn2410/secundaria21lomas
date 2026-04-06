@@ -12,6 +12,8 @@ const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const PreceptorDashboard = lazy(() => import('./pages/PreceptorDashboard'));
 const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 const Register = lazy(() => import('./pages/Register'));
+const GPDRegistro = lazy(() => import('./pages/GPDRegistro'));
+const GPDPanel = lazy(() => import('./pages/GPDPanel'));
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
           <Route path="/noticias" element={<News />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/gpd-registro" element={<GPDRegistro />} />
+          <Route path="/gpd-panel" element={<GPDPanel />} />
           <Route path="/dashboard/*" element={<AdminDashboard />} />
           <Route path="/docente/*" element={<TeacherDashboard />} />
           <Route path="/estudiante/*" element={<StudentDashboard />} />
