@@ -1,34 +1,34 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
-import AboutUs from './pages/AboutUs';
-import News from './pages/News';
 import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
-import TeacherDashboard from './pages/TeacherDashboard';
-import StudentDashboard from './pages/StudentDashboard';
-import ChangePassword from './pages/ChangePassword';
-import Register from './pages/Register';
+
+// Importaciones Dinámicas (Code Splitting)
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const News = lazy(() => import('./pages/News'));
+const DashboardRouter = lazy(() => import('./pages/DashboardRouter'));
+const ChangePassword = lazy(() => import('./pages/ChangePassword'));
+const Register = lazy(() => import('./pages/Register'));
 
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* Landing Public Routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/sobre-nosotros" element={<AboutUs />} />
-        <Route path="/noticias" element={<News />} />
-        
-        {/* Auth & Dashboards */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/admin/*" element={<AdminDashboard />} />
-        <Route path="/docente/*" element={<TeacherDashboard />} />
-        <Route path="/estudiante/*" element={<StudentDashboard />} />
-        <Route path="/change-password" element={<ChangePassword />} />
-        
-        {/* Fallback to Home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: '1rem', background: '#f8fafc' }}>
+           <p style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Cargando...</p>
+        </div>
+      }>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/sobre-nosotros" element={<AboutUs />} />
+          <Route path="/noticias" element={<News />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard/*" element={<DashboardRouter />} />
+          <Route path="/change-password" element={<ChangePassword />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

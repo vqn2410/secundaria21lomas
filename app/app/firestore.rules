@@ -1,0 +1,168 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Funciones auxiliares de seguridad
+    function isAuth() { return request.auth != null; }
+    
+    // Un administrador es aquel con rol 'admin' en Firestore O con el correo maestro
+    function isAdmin() { 
+      return isAuth() && (
+        request.auth.token.email == 'admin@admin.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // Un docente es aquel con rol 'docente' en Firestore
+    function isTeacher() {
+      return isAuth() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'docente';
+    }
+
+    // Un estudiante es aquel con rol 'estudiante' en Firestore
+    function isStudent() {
+      return isAuth() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'estudiante';
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: users (Perfiles, Roles y Seguridad)
+    // ------------------------------------------------------------------------
+    match /users/{userId} {
+      // Todos los logueados pueden ver la lista (para asignar alumnos, etc)
+      allow read: if isAuth();
+      
+      // Permitir CREAR: Admin crea docentes, Docente crea alumnos. 
+      // El admin inicial siempre puede crearse a sí mismo.
+      allow create: if isAuth() && (
+        isAdmin() || 
+        isTeacher() || 
+        (request.auth.token.email == 'admin@admin.com' && request.auth.uid == userId)
+      );
+
+      // Permitir ACTUALIZAR: Admin, Docente o el propio usuario (para cambiar su clave)
+      allow update: if isAuth() && (isAdmin() || isTeacher() || request.auth.uid == userId);
+      
+      // Solo el administrador puede borrar usuarios
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: practices (Gestión de Prácticas y Cupos)
+    // ------------------------------------------------------------------------
+    match /practices/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin() || isTeacher();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colecciones: courses y subjects (Catálogo escolar)
+    // ------------------------------------------------------------------------
+    match /courses/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: announcements (Comunicados)
+    // ------------------------------------------------------------------------
+    match /announcements/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: assignments (Inscripciones de Alumnos)
+    // ------------------------------------------------------------------------
+    match /assignments/{id} {
+      allow read: if isAuth();
+      
+      // Estudiantes, Docentes o Admin se inscriben
+      allow create: if isAuth() && (isStudent() || isAdmin() || isTeacher());
+      
+      // Docentes o Admin confirman/cierran la práctica
+      allow update: if isAuth() && (isTeacher() || isAdmin());
+      
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colecciones: teacher_lists y list_members (Gestión de Listados)
+    // ------------------------------------------------------------------------
+    match /teacher_lists/{id} {
+      allow read: if isAuth();
+      // El docente solo puede crear/editar sus propios listados
+      allow write: if isTeacher() && request.auth.uid == request.resource.data.teacherUid || isAdmin();
+      allow delete: if isAdmin() || (isTeacher() && request.auth.uid == resource.data.teacherUid);
+    }
+
+    match /list_members/{id} {
+      allow read: if isAuth();
+      allow write: if isTeacher() || isAdmin();
+      allow delete: if isTeacher() || isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colecciones de Mi Personal (Gestión Institucional)
+    // ------------------------------------------------------------------------
+    match /personal/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /nomina/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /cupof_master/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colecciones de Prácticas Docentes (ISFD)
+    // ------------------------------------------------------------------------
+    match /practicas_docentes/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    match /practica_supervisores/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: ciclos (Gestión de Ciclos Lectivos)
+    // ------------------------------------------------------------------------
+    match /ciclos/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: roles (Permisos de la Plataforma)
+    // ------------------------------------------------------------------------
+    match /roles/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Colección: system_config (Configuración global)
+    // ------------------------------------------------------------------------
+    match /system_config/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+  }
+}

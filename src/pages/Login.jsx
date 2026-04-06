@@ -59,11 +59,8 @@ export default function Login() {
         return;
       }
 
-      if (userRole === 'admin') navigate('/admin');
-      else if (userRole === 'docente') navigate('/docente');
-      else if (userRole === 'estudiante') navigate('/estudiante');
-      else setError('Rol de cuenta desconocido.');
-      
+      // Unificamos todo el panel en una única ruta
+      navigate('/dashboard');
     } catch (err) {
       console.error("Error completo de login:", err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
