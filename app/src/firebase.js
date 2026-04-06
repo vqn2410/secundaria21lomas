@@ -18,3 +18,15 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const analytics = getAnalytics(app);
+
+const gpdConfig = {
+  apiKey: "AIzaSyDEdC6E-IigYqY8IeF8R-wRtz7aP_eR2A8",
+  authDomain: "practicasdocentesensam.firebaseapp.com",
+  projectId: "practicasdocentesensam",
+  storageBucket: "practicasdocentesensam.firebasestorage.app",
+  messagingSenderId: "569502905470",
+  appId: "1:569502905470:web:4ff92723c3b0eb6e57cdfc"
+};
+
+const gpdApp = initializeApp(gpdConfig, "GPD_APP");
+export const gpdDb = getFirestore(gpdApp);
