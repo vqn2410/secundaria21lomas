@@ -23,7 +23,7 @@ export default function Login() {
         
         if (userDocSnap.exists()) {
           const { role } = userDocSnap.data();
-          if (role === 'admin') navigate('/dashboard');
+          if (role === 'admin' || role === 'equipo-de-conduccion') navigate('/dashboard');
           else if (role === 'docente') navigate('/docente');
           else if (role === 'estudiante') navigate('/estudiante');
           else if (role === 'preceptor') navigate('/preceptor');
@@ -83,11 +83,11 @@ export default function Login() {
       }
 
       // Una vez validado, derivamos según su VERDADERO rol
-      if (userRole === 'admin') navigate('/dashboard');
+      if (userRole === 'admin' || userRole === 'equipo-de-conduccion') navigate('/dashboard');
       else if (userRole === 'docente') navigate('/docente');
       else if (userRole === 'estudiante') navigate('/estudiante');
       else if (userRole === 'preceptor') navigate('/preceptor');
-      else setError('Rol de cuenta desconocido.');
+      else setError(`Rol de cuenta desconocido (${userRole}).`);
       
     } catch (err) {
       console.error("Error completo de login:", err);

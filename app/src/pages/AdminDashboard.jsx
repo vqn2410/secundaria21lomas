@@ -144,8 +144,8 @@ const PLANILLAS_SECTIONS = [
 ];
 
 const ESCUELA_SECTIONS = [
-  { name: 'Gestión Institucional', path: '/dashboard/escuela' },
-  { name: 'Ciclos Lectivos', path: '/dashboard/escuela/ciclos' }
+  { name: 'Estructura Institucional', path: '/dashboard/escuela' },
+  { name: 'Gestión de Materias y Horarios', path: '/dashboard/escuela/materias' }
 ];
 
 const PRACTICAS_SECTIONS = [
@@ -1157,6 +1157,103 @@ function PracticaProfesorados() {
                 <td>
                   <button className="btn" onClick={() => { setFormData(p); setIsAdding(true); }}><Pencil size={16} /></button>
                   <button className="btn" onClick={() => handleDelete(p.id)} style={{ color: 'red' }}><Trash2 size={16} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function EscuelaMaterias() {
+  const [materias, setMaterias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [form, setForm] = useState({ 
+    nombre: '', curso: '', profesor: '', dia: 'Lunes', 
+    desde: '08:00', hasta: '10:00', aula: '' 
+  });
+
+  const fetchMaterias = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'materias_horarios'));
+      setMaterias(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchMaterias(); }, []);
+
+  const handleSave = async () => {
+    if (!form.nombre || !form.curso) return alert("Faltan datos");
+    try {
+      if (form.id) await updateDoc(doc(db, 'materias_horarios', form.id), form);
+      else await addDoc(collection(db, 'materias_horarios'), form);
+      setIsAdding(false);
+      setForm({ nombre: '', curso: '', profesor: '', dia: 'Lunes', desde: '08:00', hasta: '10:00', aula: '' });
+      fetchMaterias();
+    } catch (err) { alert(err.message); }
+  };
+
+  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Mi Escuela" mainPath="/dashboard/escuela" currentPath="/dashboard/escuela/materias" subSections={ESCUELA_SECTIONS} />
+      
+      <div className="header-flex">
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gestión de Materias y Horarios</h1>
+        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Nueva Materia / Horario</button>
+      </div>
+
+      {isAdding && (
+        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid var(--color-primary)' }}>
+          <h3 style={{ marginBottom: '1.5rem', fontWeight: 800 }}>{form.id ? 'Editar Materia' : 'Nueva Asignación de Horario'}</h3>
+          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+            <div className="form-group"><label>Materia</label><input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} placeholder="Ej: Matemática" /></div>
+            <div className="form-group"><label>Curso</label><input className="input-field" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} placeholder="Ej: 1° 1ra" /></div>
+            <div className="form-group"><label>Profesor Designado</label><input className="input-field" value={form.profesor} onChange={e => setForm({...form, profesor: e.target.value})} /></div>
+            <div className="form-group">
+              <label>Día</label>
+              <select className="input-field" value={form.dia} onChange={e => setForm({...form, dia: e.target.value})}>
+                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div className="form-group"><label>Hora Inicio</label><input type="time" className="input-field" value={form.desde} onChange={e => setForm({...form, desde: e.target.value})} /></div>
+            <div className="form-group"><label>Hora Fin</label><input type="time" className="input-field" value={form.hasta} onChange={e => setForm({...form, hasta: e.target.value})} /></div>
+          </div>
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+            <button className="btn btn-primary" onClick={handleSave}>Guardar Horario</button>
+            <button className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      <div className="card" style={{ padding: 0 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead style={{ background: '#f8fafc' }}>
+            <tr>
+              <th style={{ padding: '1rem' }}>Materia</th>
+              <th>Día</th>
+              <th>Horario</th>
+              <th>Curso</th>
+              <th>Docente</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {materias.map(m => (
+              <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '1rem', fontWeight: 700 }}>{m.nombre}</td>
+                <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{m.dia}</td>
+                <td>{m.desde} - {m.hasta}</td>
+                <td style={{ fontWeight: 600 }}>{m.curso}</td>
+                <td>{m.profesor}</td>
+                <td>
+                  <button className="btn" onClick={() => { setForm(m); setIsAdding(true); }}><Pencil size={16} /></button>
                 </td>
               </tr>
             ))}
@@ -2916,6 +3013,7 @@ export default function AdminDashboard() {
           </div>
         } />
         <Route path="escuela" element={<MiEscuelaHome />} />
+        <Route path="escuela/materias" element={<EscuelaMaterias />} />
         <Route path="practicas" element={<PracticaHome />} />
         <Route path="practicas/institutos" element={<PracticaInstitutos />} />
         <Route path="practicas/profesorados" element={<PracticaProfesorados />} />
