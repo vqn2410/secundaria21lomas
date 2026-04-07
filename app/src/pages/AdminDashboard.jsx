@@ -172,6 +172,83 @@ const PRACTICAS_SECTIONS = [
   { name: 'Gestión Accesos', path: '/dashboard/practicas/accesos' }
 ];
 
+// --- COMPONENTE CARGA MASIVA CSV ---
+function CSVImportButton({ title, collectionName, columns, firebaseDb = db, onComplete }) {
+  const [importing, setImporting] = useState(false);
+
+  const downloadModel = () => {
+    const header = columns.join(',');
+    const blob = new Blob([header], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `modelo_${collectionName}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      setImporting(true);
+      try {
+        const text = event.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        const results = lines.slice(1).map(line => {
+          const values = line.split(',');
+          let obj = {};
+          headers.forEach((h, i) => {
+             if (columns.includes(h)) obj[h] = values[i]?.trim() || "";
+          });
+          return obj;
+        });
+
+        // Carga secuencial para no saturar
+        let count = 0;
+        for (const data of results) {
+          if (!data[columns[0]]) continue; // Skip if first required column is empty
+          await addDoc(collection(firebaseDb, collectionName), { ...data, createdAt: new Date() });
+          count++;
+        }
+
+        alert(`¡Éxito! Se cargaron ${count} registros en ${title}.`);
+        if (onComplete) onComplete();
+      } catch (err) {
+        alert("Error al procesar el archivo CSV: " + err.message);
+      } finally {
+        setImporting(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <button className="btn" onClick={downloadModel} style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.4rem 0.8rem', border: '1px dashed var(--border)' }}>
+        Descargar Modelo .CSV
+      </button>
+      <div style={{ position: 'relative' }}>
+        <button className="btn btn-primary" disabled={importing} style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.4rem 0.8rem' }}>
+          {importing ? <Loader2 className="animate-spin" size={14} /> : <FileText size={14} />} Carga Masiva
+        </button>
+        <input 
+          type="file" 
+          accept=".csv" 
+          onChange={handleFileUpload} 
+          style={{ position: 'absolute', top: 0, left: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} 
+        />
+      </div>
+    </div>
+  );
+}
+
 // --- GESTIÓN DE PERSONAL: BASE DE DATOS Y LEGAJOS ---
 
 function PersonalDatabase() {
@@ -180,6 +257,7 @@ function PersonalDatabase() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLegajo, setSelectedLegajo] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [nominaMap, setNominaMap] = useState({});
   const [formData, setFormData] = useState({
     cuil_pre: '20', dni: '', cuil_suf: '', apellido: '', nombre: '',
     email_abc: '', fecha_nacimiento: '', direccion: '', localidad: '', cp: '',
@@ -187,14 +265,65 @@ function PersonalDatabase() {
     salud: '', telefono: '', cargos: []
   });
 
-  useEffect(() => { fetchPersonal(); }, []);
+  // FETCH NOMINA DATA (OFFICIAL POSITIONS SYNC)
+    const [nominaCargos, setNominaCargos] = useState([]);
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await fetchPersonal(); 
+      await fetchNominaStatus();
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  const fetchNominaStatus = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'nomina'));
+      const map = {};
+      snap.docs.forEach(doc => {
+        const data = doc.data();
+        const digits = (data.cuil || "").replace(/\D/g, '');
+        const dni = digits.length >= 10 ? digits.slice(2, -1) : digits;
+        if (dni) map[dni] = true;
+      });
+      setNominaMap(map);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (!selectedLegajo) {
+       setNominaCargos([]);
+       return;
+    }
+    const fetchNominaCargos = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'nomina'));
+        const allNomina = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Normalizamos el DNI del legajo actual
+        const targetDni = selectedLegajo.dni.replace(/\D/g, ''); 
+        
+        // Filtramos localmente para manejar prefijos (20-, 27-) y sufijos
+        const filtered = allNomina.filter(item => {
+           const itemDigits = (item.cuil || "").replace(/\D/g, '');
+           return itemDigits.includes(targetDni);
+        });
+        
+        setNominaCargos(filtered);
+      } catch (e) { 
+        console.error("Error fetching nomina cargos:", e); 
+        setNominaCargos([]);
+      }
+    };
+    fetchNominaCargos();
+  }, [selectedLegajo?.dni]);
 
   const fetchPersonal = async () => {
     try {
       const snap = await getDocs(collection(db, 'personal'));
       const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPersonal(list.length > 0 ? list : []); // Empty if no DB yet
-      setLoading(false);
     } catch (err) { console.error(err); }
   };
 
@@ -227,6 +356,15 @@ function PersonalDatabase() {
       fetchPersonal();
       alert("Legajo guardado correctamente.");
     } catch (err) { alert("Error al guardar: " + err.message); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Estás seguro de eliminar este legajo de forma permanente? Esta acción borrará todos los datos personales del agente.")) return;
+    try {
+      await deleteDoc(doc(db, 'personal', id));
+      fetchPersonal();
+      alert("Legajo eliminado.");
+    } catch (err) { alert("Error al eliminar: " + err.message); }
   };
 
   const addCargo = () => {
@@ -380,6 +518,7 @@ function PersonalDatabase() {
 
   if (selectedLegajo) {
     const p = selectedLegajo;
+    
     return (
       <>
         <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/database" subSections={PERSONAL_SECTIONS} />
@@ -491,9 +630,40 @@ function PersonalDatabase() {
                 </div>
              </div>
 
+             <div className="card" style={{ borderLeft: '6px solid var(--color-primary)' }}>
+                <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ListChecks size={20} style={{ color: 'var(--color-primary)' }} /> Cargos en Nómina Oficial (Sincronizado)
+                </h3>
+                {nominaCargos.length > 0 ? (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>CUPOF</th>
+                        <th>Asignatura / Cargo</th>
+                        <th>Situación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {nominaCargos.map((n, i) => (
+                        <tr key={i}>
+                          <td style={{ fontWeight: 800 }}>{n.cupof}</td>
+                          <td style={{ fontWeight: 700 }}>
+                            <span style={{ color: 'var(--color-primary)', marginRight: '0.4rem' }}>({n.pid})</span>
+                            {PID_CATALOG[n.pid] || n.materia || n.pid}
+                          </td>
+                          <td><span className="badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>{n.situacion}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ opacity: 0.5, fontSize: '0.85rem' }}>No se registran cargos en la nómina oficial para este DNI.</p>
+                )}
+             </div>
+
              <div className="card">
                 <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <NotebookTabs size={20} style={{ color: 'var(--color-primary)' }} /> Cargos y Desempeños Actuales
+                  <NotebookTabs size={20} style={{ color: 'var(--color-primary)' }} /> Observaciones y Desempeños Adicionales
                 </h3>
                 <table>
                   <thead>
@@ -533,7 +703,13 @@ function PersonalDatabase() {
           <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Base de Datos de Personal</h1>
           <p>Gestión centralizada de legajos y cargos institucionales.</p>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <CSVImportButton 
+            title="Base de Personal" 
+            collectionName="personal" 
+            columns={['dni', 'apellido', 'nombre', 'cuil_pre', 'cuil_suf', 'email_abc', 'telefono', 'direccion', 'localidad', 'cp']} 
+            onComplete={fetchPersonal} 
+          />
           <div style={{ position: 'relative' }}>
             <Search size={20} style={{ position: 'absolute', left: '1rem', top: '15px', color: 'var(--text-light)' }} />
             <input 
@@ -566,7 +742,13 @@ function PersonalDatabase() {
                     {p.cuil_pre} {p.dni} {p.cuil_suf}
                   </td>
                   <td style={{ fontWeight: 700, color: 'var(--text)' }}>{p.apellido.toUpperCase()}, {p.nombre}</td>
-                  <td><span className="badge" style={{ background: '#dcfce7', color: '#15803d' }}>Activo</span></td>
+                  <td>
+                    {nominaMap[p.dni] ? (
+                      <span className="badge" style={{ background: '#dcfce7', color: '#15803d' }}>Activo</span>
+                    ) : (
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#64748b' }}>Sin Cargo</span>
+                    )}
+                  </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
                       <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)', fontWeight: 700 }} onClick={() => setSelectedLegajo(p)}>
@@ -574,6 +756,9 @@ function PersonalDatabase() {
                       </button>
                       <button className="btn" style={{ color: '#f59e0b' }} onClick={() => handleEdit(p)}>
                          <Pencil size={16} />
+                      </button>
+                      <button className="btn" style={{ color: '#ef4444' }} onClick={() => handleDelete(p.id)}>
+                         <Trash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -598,8 +783,8 @@ function PersonalNomina() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     cupof: '', cuil: '', docente: '', situacion: 'Titular',
-    curso: '', seccion: '', pid: '', alta: '', cese: '', motivo_cese: '', observaciones: '',
-    suplencia_de: '', suplencia_nombre: ''
+    curso: '', seccion: '', pid: '', fecha_toma_posesion: '', cese: '', motivo_cese: '', observaciones: '',
+    suplencia_de: '', suplencia_nombre: '', acto_administrativo: '', acto_otros: ''
   });
   const [activeTab, setActiveTab] = useState('info');
 
@@ -622,8 +807,8 @@ function PersonalNomina() {
   const handleNew = () => {
     setEditForm({ 
       cupof: '', cuil: '', docente: '', situacion: 'Titular', 
-      curso: '', seccion: '', pid: '', alta: '', cese: '', 
-      motivo_cese: '', observaciones: '', suplencia_de: '', suplencia_nombre: '' 
+      curso: '', seccion: '', pid: '', fecha_toma_posesion: '', cese: '', 
+      motivo_cese: '', observaciones: '', suplencia_de: '', suplencia_nombre: '', acto_administrativo: '', acto_otros: '' 
     });
     setIsEditing(true);
   };
@@ -802,19 +987,37 @@ function PersonalNomina() {
            </div>
 
            <div className="card" style={{ gridColumn: 'span 2' }}>
-              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Fechas y Movimientos</h3>
-              <div className="grid grid-cols-3" style={{ gap: '1.5rem' }}>
+              <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Fechas y Movimientos Administrativos</h3>
+              <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
                  <div className="form-group">
-                    <label>Fecha de Alta</label>
-                    <input className="input-field" type="date" value={editForm.alta} onChange={e => setEditForm({...editForm, alta: e.target.value})} />
+                    <label>Fecha de Toma de Posesión</label>
+                    <input className="input-field" type="date" value={editForm.fecha_toma_posesion} onChange={e => setEditForm({...editForm, fecha_toma_posesion: e.target.value})} />
                  </div>
+                 <div className="form-group">
+                    <label>Acto Administrativo</label>
+                    <select className="input-field" value={editForm.acto_administrativo} onChange={e => setEditForm({...editForm, acto_administrativo: e.target.value})}>
+                       <option value="">Seleccionar...</option>
+                       <option value="MAD">MAD</option>
+                       <option value="TI">TI</option>
+                       <option value="DD">DD</option>
+                       <option value="AH">AH</option>
+                       <option value="APD">APD</option>
+                       <option value="Otros">Otros (Especificar)</option>
+                    </select>
+                 </div>
+                 {editForm.acto_administrativo === 'Otros' && (
+                   <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label>Especificar Acto</label>
+                      <input className="input-field" value={editForm.acto_otros} onChange={e => setEditForm({...editForm, acto_otros: e.target.value})} placeholder="Cuál?" />
+                   </div>
+                 )}
                  <div className="form-group">
                     <label>Fecha de Cese (Opcional)</label>
                     <input className="input-field" type="date" value={editForm.cese} onChange={e => setEditForm({...editForm, cese: e.target.value})} />
                  </div>
                  <div className="form-group">
                     <label>Motivo de Cese</label>
-                    <input className="input-field" value={editForm.motivo_cese} onChange={e => setEditForm({...editForm, motivo_cese: e.target.value})} placeholder="Ej: Renuncia, MAD..." disabled={!editForm.cese} />
+                    <input className="input-field" value={editForm.motivo_cese} onChange={e => setEditForm({...editForm, motivo_cese: e.target.value})} placeholder="Ej: Renuncia, Jubilación..." />
                  </div>
               </div>
            </div>
@@ -894,9 +1097,10 @@ function PersonalNomina() {
                     </div>
                     <div style={{ display: 'flex', gap: '2rem' }}>
                        <div>
-                          <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Fecha de Alta</p>
+                          <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Toma de Posesión</p>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', fontWeight: 700 }}>
-                             <Calendar size={16} /> {n.alta}
+                             <Calendar size={16} /> {n.fecha_toma_posesion}
+                             {n.acto_administrativo && <span className="badge" style={{ background: 'var(--color-primary)', color: 'white', fontSize: '0.65rem' }}>{n.acto_administrativo === 'Otros' ? n.acto_otros : n.acto_administrativo}</span>}
                           </div>
                        </div>
                        {n.cese && (
@@ -932,10 +1136,20 @@ function PersonalNomina() {
       <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/nomina" subSections={PERSONAL_SECTIONS} />
       <div className="header-flex">
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Nómina Institucional</h1>
-          <p>Control de designaciones, códigos PID y ceses de personal.</p>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Nómina Institucional (SGE)</h1>
+          <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Maestro de CUPOFs y Designaciones vigentes.</p>
         </div>
-        <button className="btn btn-primary" onClick={handleNew}>+ Cargar Designación</button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <CSVImportButton 
+            title="Nómina" 
+            collectionName="nomina" 
+            columns={['cupof', 'cuil', 'docente', 'pid', 'situacion', 'curso', 'turno', 'fecha_toma_posesion', 'acto_administrativo', 'acto_otros']} 
+            onComplete={fetchNomina} 
+          />
+          <button className="btn btn-primary" onClick={handleNew} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, fontSize: '0.85rem' }}>
+             <Plus size={18} /> Nueva Designación
+          </button>
+        </div>
       </div>
 
       <div className="table-wrapper">
@@ -1275,8 +1489,8 @@ function PracticaHome() {
         />
         <DashboardCard 
           color="#06b6d4" 
-          title="Nómina Nominal" 
-          description="Listado oficial de residentes con destino asignado." 
+          title="Nómina de estudiantes de práctica" 
+          description="Listado oficial de residentes y practicantes aprobados." 
           icon={<ListChecks size={28} />} 
           href="/dashboard/practicas/estudiantes"
           target="_self"
@@ -1436,6 +1650,14 @@ function MiEscuelaHome() {
       </div>
 
       <DashboardGrid>
+        <DashboardCard 
+          color="#f97316" 
+          title="Nómina de estudiantes de práctica" 
+          description="Nómina oficial de residentes y practicantes del año en curso." 
+          icon={<FileText size={28} />} 
+          href="/dashboard/escuela/practica/nomina"
+          target="_self"
+        />
         <DashboardCard 
           color="#f97316" 
           title="Estructura (Cursos)" 
@@ -2477,14 +2699,53 @@ function PracticaOfertas() {
   return (
     <div>
       <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/ofertas" subSections={PRACTICAS_SECTIONS} />
-      <div className="card" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: globalEnabled ? '#fdf2f8' : '#f1f5f9', borderLeft: `6px solid ${globalEnabled ? '#ec4899' : '#94a3b8'}` }}>
-         <div>
-            <h4 style={{ fontWeight: 800, color: globalEnabled ? '#ec4899' : '#475569' }}>Control Global de Inscripciones</h4>
-            <p style={{ fontSize: '0.85rem' }}>{globalEnabled ? 'Los estudiantes pueden visualizar y postularse a vacantes abiertas.' : 'El portal de inscripciones está cerrado para todos los estudiantes.'}</p>
+      {/* CONTROL GLOBAL DE INSCRIPCIONES */}
+      <div className="card" style={{ 
+        marginBottom: '2rem', display: 'flex', alignItems: 'center', 
+        justifyContent: 'space-between', padding: '1.5rem 2rem',
+        background: globalEnabled ? 'linear-gradient(135deg, #fdf2f8 0%, #fae8ff 100%)' : '#f1f5f9', 
+        border: `2px solid ${globalEnabled ? '#ec4899' : '#94a3b8'}`,
+        boxShadow: globalEnabled ? '0 10px 15px -3px rgba(236, 72, 153, 0.1)' : 'none'
+      }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <div style={{ 
+              background: globalEnabled ? '#ec4899' : '#475569', 
+              color: 'white', padding: '12px', borderRadius: '12px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}>
+               <Clipboard size={32} />
+            </div>
+            <div>
+               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: globalEnabled ? '#be185d' : '#1e293b', margin: 0 }}>
+                 {globalEnabled ? 'PROCESO DE INSCRIPCIÓN: ACTIVO' : 'PROCESO DE INSCRIPCIÓN: CERRADO'}
+               </h3>
+               <p style={{ fontSize: '0.9rem', color: globalEnabled ? '#be185d' : '#64748b', opacity: 0.8, margin: '4px 0 0' }}>
+                 {globalEnabled 
+                   ? 'Los estudiantes residentes pueden visualizar vacantes y postularse libremente.' 
+                   : 'El portal de inscripciones está bloqueado para todos los estudiantes.'}
+               </p>
+            </div>
          </div>
-         <button className="btn" onClick={toggleGlobal} style={{ background: globalEnabled ? '#ec4899' : '#475569', color: 'white', fontWeight: 800 }}>
-            {globalEnabled ? 'Desactivar Inscripciones' : 'Activar Inscripciones'}
-         </button>
+         <div style={{ textAlign: 'right' }}>
+            <button 
+              className="btn" 
+              onClick={() => {
+                if(window.confirm(`¿Estás seguro que deseas ${globalEnabled ? 'CERRAR' : 'ABRIR'} el portal de inscripciones para TODOS los estudiantes?`)) {
+                  toggleGlobal();
+                }
+              }} 
+              style={{ 
+                background: globalEnabled ? '#ec4899' : '#475569', 
+                color: 'white', fontWeight: 800, padding: '0.75rem 1.5rem',
+                display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '12px'
+              }}
+            >
+               {globalEnabled ? 'CERRAR PORTAL' : 'ACTIVAR INSCRIPCIONES'}
+            </button>
+            <p style={{ fontSize: '0.7rem', marginTop: '0.5rem', color: '#64748b', fontStyle: 'italic' }}>
+              Afecta a todos los profesorados de forma inmediata.
+            </p>
+         </div>
       </div>
 
       <div className="header-flex">
@@ -2918,7 +3179,7 @@ function PracticaEstudiantes() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Nómina Nominal de Prácticas - EES 21</title>
+          <title>Nómina de estudiantes de práctica - EES 21</title>
           <style>
             body { font-family: sans-serif; padding: 30px; }
             h1 { text-align: center; color: #be185d; text-transform: uppercase; border-bottom: 2px solid #be185d; padding-bottom: 15px; }
@@ -2928,7 +3189,7 @@ function PracticaEstudiantes() {
           </style>
         </head>
         <body>
-          <h1>Nómina Nominal de Estudiantes de Práctica y Residencia</h1>
+          <h1>Nómina de estudiantes de práctica y Residencia</h1>
           <p><strong>Institución:</strong> E.E.S. N° 21 "ENSAM" - Lomas de Zamora</p>
           <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
           <table>
@@ -2961,11 +3222,11 @@ function PracticaEstudiantes() {
       
       <div className="header-flex">
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Nómina Nominal</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Nómina de estudiantes de práctica</h1>
           <p>Listado consolidado de residentes aprobados en la institución.</p>
         </div>
         <button className="btn btn-primary" onClick={handlePrint} style={{ background: '#ec4899', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-           <FileText size={20} /> Descargar Listado Nominal (PDF)
+           <FileText size={20} /> Descargar Nómina de Estudiantes (PDF)
         </button>
       </div>
 
@@ -3035,14 +3296,143 @@ function PracticaAccesos() {
   );
 }
 
+function EstudiantesDatabase() {
+  const [estudiantes, setEstudiantes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  const fetchEstudiantes = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(db, 'estudiantes'));
+      setEstudiantes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchEstudiantes(); }, []);
+
+  const filtered = estudiantes.filter(e => 
+    `${e.apellido || ''} ${e.nombre || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (e.dni || "").includes(searchTerm)
+  );
+
+  if (selectedStudent) {
+    const s = selectedStudent;
+    return (
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        <AdminSubNav mainTitle="Estudiantes" mainPath="/dashboard/estudiantes" currentPath="/dashboard/estudiantes/database" subSections={[ { name: 'Base de Datos', path: '/dashboard/estudiantes/database' }, { name: 'Nóminas x Curso', path: '/dashboard/estudiantes/nominas' } ]} />
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
+           <button className="btn" onClick={() => setSelectedStudent(null)}><ArrowLeft size={18} /></button>
+           <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Ficha del Alumno: {s.apellido}, {s.nombre}</h1>
+        </div>
+        
+        <div className="card">
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '2rem' }}>
+              <div><label style={{ fontSize: '0.7rem', opacity: 0.6, fontWeight: 800 }}>DNI</label><p style={{ fontWeight: 800 }}>{s.dni}</p></div>
+              <div><label style={{ fontSize: '0.7rem', opacity: 0.6, fontWeight: 800 }}>CURSO</label><p style={{ fontWeight: 800 }}>{s.curso} {s.division}</p></div>
+              <div><label style={{ fontSize: '0.7rem', opacity: 0.6, fontWeight: 800 }}>TURNO</label><p style={{ fontWeight: 800 }}>{s.turno}</p></div>
+              <div><label style={{ fontSize: '0.7rem', opacity: 0.6, fontWeight: 800 }}>EMAIL</label><p style={{ fontWeight: 700 }}>{s.email}</p></div>
+              <div><label style={{ fontSize: '0.7rem', opacity: 0.6, fontWeight: 800 }}>FECHA NAC.</label><p style={{ fontWeight: 600 }}>{s.fecha_nacimiento || '-'}</p></div>
+           </div>
+        </div>
+        
+        <div style={{ marginTop: '2rem' }}>
+           <h3 style={{ marginBottom: '1rem' }}>Seguimiento Pedagógico</h3>
+           <p style={{ opacity: 0.5 }}>Para cargar el seguimiento institucional, diríjase a la sección de <strong>Planillas &rarr; Seguimiento</strong>.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <AdminSubNav mainTitle="Estudiantes" mainPath="/dashboard/estudiantes" currentPath="/dashboard/estudiantes/database" subSections={[ { name: 'Base de Datos', path: '/dashboard/estudiantes/database' }, { name: 'Nóminas x Curso', path: '/dashboard/estudiantes/nominas' } ]} />
+      <div className="header-flex">
+        <div>
+           <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Base de Datos Estudiantil</h1>
+           <p>Registro centralizado de matrícula institucional.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <CSVImportButton 
+            title="Base Estudiantil" 
+            collectionName="estudiantes" 
+            columns={['dni', 'apellido', 'nombre', 'curso', 'division', 'turno', 'email']} 
+            onComplete={fetchEstudiantes} 
+          />
+          <div style={{ position: 'relative' }}>
+             <Search size={20} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
+             <input className="input-field" placeholder="Buscar DNI o Apellido..." style={{ paddingLeft: '3rem', margin: 0, width: '250px' }} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="table-wrapper">
+         {loading ? <p style={{ textAlign: 'center', padding: '4rem' }}>Cargando matrícula...</p> : (
+           <table>
+             <thead>
+               <tr><th>DNI</th><th>Apellido y Nombre</th><th>Curso</th><th>Turno</th><th>Acciones</th></tr>
+             </thead>
+             <tbody>
+               {filtered.map(e => (
+                 <tr key={e.id}>
+                   <td style={{ fontWeight: 800 }}>{e.dni}</td>
+                   <td style={{ fontWeight: 700 }}>{e.apellido.toUpperCase()}, {e.nombre}</td>
+                   <td>{e.curso} {e.division}</td>
+                   <td>{e.turno}</td>
+                   <td><button className="btn" style={{ color: 'var(--color-primary)' }} onClick={() => setSelectedStudent(e)}><FileSearch size={16} /> Ver Ficha</button></td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         )}
+      </div>
+    </>
+  );
+}
+
+const ESTUDIANTES_SECTIONS = [
+  { name: 'Base de Datos', path: '/dashboard/estudiantes/database' },
+  { name: 'Nóminas x Curso', path: '/dashboard/estudiantes/nominas' }
+];
+
+function EstudiantesHome() {
+  return (
+    <>
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Mis Estudiantes</h1>
+        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Gestión de matrícula, nóminas y legajos administrativos.</p>
+      </div>
+
+      <DashboardGrid>
+        <DashboardCard 
+          color="#f97316" 
+          title="Base de Datos" 
+          description="Matrícula general de alumnos (Búsqueda por DNI)." 
+          icon={<Users size={28} />} 
+          href="/dashboard/estudiantes/database"
+        />
+        <DashboardCard 
+          color="#10b981" 
+          title="Nóminas x Curso" 
+          description="Listados oficiales por año, división y turno." 
+          icon={<LayoutList size={28} />} 
+          href="/dashboard/estudiantes/nominas"
+        />
+      </DashboardGrid>
+    </>
+  );
+}
+
 // --- PLANILLAS DE CALIFICACIÓN Y SEGUIMIENTO ---
 
 function PlanillasHome() {
   return (
     <>
       <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Mis Planillas</h1>
-        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Acceso centralizado a documentos de evaluación y seguimiento institucional.</p>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Gestión de Planillas</h1>
+        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Herramientas de evaluación y seguimiento institucional del ENSAM.</p>
       </div>
 
       <DashboardGrid>
@@ -3052,56 +3442,30 @@ function PlanillasHome() {
           description="Carga y consulta de notas trimestrales por curso y materia." 
           icon={<FileCheck size={28} />} 
           href="/dashboard/planillas/calificacion"
-          target="_self"
         />
         <DashboardCard 
           color="#06b6d4" 
-          title="Planillas de Seguimiento" 
-          description="Rastreo de asistencias, conducta y evolución pedagógica." 
+          title="Seguimiento de Trayectoria" 
+          description="Planilla oficial de seguimiento pedagógico, AIC e intervenciones." 
           icon={<Clipboard size={28} />} 
           href="/dashboard/planillas/seguimiento"
-          target="_self"
         />
       </DashboardGrid>
     </>
   );
 }
+
+import { SeguimientoMando } from './PlanillaSeguimientoPage';
+
+
+
+
 
 // --- MI ESCUELA: GESTIÓN DE CICLOS Y PROPUESTAS ---
 
 
 
 // --- NUEVAS SECCIONES DE ESTUDIANTES ---
-
-function EstudiantesHome() {
-  return (
-    <>
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Gestión de Estudiantes</h1>
-        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Herramientas de control de matrícula, nóminas y expedientes académicos.</p>
-      </div>
-
-      <DashboardGrid>
-        <DashboardCard 
-          color="#10b981" 
-          title="Base de datos de Estudiantes" 
-          description="Legajos digitales completos, datos personales y trayectoria." 
-          icon={<Users size={28} />} 
-          href="/dashboard/estudiantes/database"
-          target="_self"
-        />
-        <DashboardCard 
-          color="#3b82f6" 
-          title="Nóminas Escolares" 
-          description="Generación de listas por curso, ciclo y orientación." 
-          icon={<ListChecks size={28} />} 
-          href="/dashboard/estudiantes/nominas"
-          target="_self"
-        />
-      </DashboardGrid>
-    </>
-  );
-}
 
 function NominaEstudiantes() {
   const [filter, setFilter] = useState({ ciclo: '2026', propuesta: 'todas', orientacion: 'todas' });
@@ -4073,9 +4437,9 @@ export default function AdminDashboard() {
         <Route path="practicas/accesos" element={<PracticaAccesos />} />
         <Route path="planillas" element={<PlanillasHome />} />
         <Route path="planillas/calificacion" element={<div>Libro de Calificaciones Digital (Carga de Notas)</div>} />
-        <Route path="planillas/seguimiento" element={<div>Planillas de Seguimiento Pedagógico y Asistencia</div>} />
+        <Route path="planillas/seguimiento" element={<SeguimientoMando />} />
         <Route path="estudiantes" element={<EstudiantesHome />} />
-        <Route path="estudiantes/database" element={<div>Base de Datos de Estudiantes (Próximamente)</div>} />
+        <Route path="estudiantes/database" element={<EstudiantesDatabase />} />
         <Route path="estudiantes/nominas" element={<NominaEstudiantes />} />
         <Route path="boletin" element={<div>Boletín Digital (Próximamente)</div>} />
         <Route path="ajustes" element={<ConfigHome />} />

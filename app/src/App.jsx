@@ -1,5 +1,7 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 
@@ -14,6 +16,32 @@ const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 const Register = lazy(() => import('./pages/Register'));
 const GPDRegistro = lazy(() => import('./pages/GPDRegistro'));
 const GPDPanel = lazy(() => import('./pages/GPDPanel'));
+
+// Componente para proteger rutas
+function ProtectedRoute({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>
+      <p style={{ fontWeight: 800, color: 'var(--color-primary)' }}>Verificando sesión...</p>
+    </div>
+  );
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
 
 function App() {
   return (
@@ -30,12 +58,16 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/gpd-registro" element={<GPDRegistro />} />
-          <Route path="/gpd-panel" element={<GPDPanel />} />
-          <Route path="/dashboard/*" element={<AdminDashboard />} />
-          <Route path="/docente/*" element={<TeacherDashboard />} />
-          <Route path="/estudiante/*" element={<StudentDashboard />} />
-          <Route path="/preceptor/*" element={<PreceptorDashboard />} />
-          <Route path="/change-password" element={<ChangePassword />} />
+          
+          {/* Rutas Protegidas */}
+          <Route path="/dashboard/*" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/docente/*" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/estudiante/*" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/preceptor/*" element={<ProtectedRoute><PreceptorDashboard /></ProtectedRoute>} />
+          <Route path="/gpd-panel" element={<ProtectedRoute><GPDPanel /></ProtectedRoute>} />
+          
+          <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+          
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
