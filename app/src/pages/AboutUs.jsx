@@ -130,7 +130,7 @@ export default function AboutUs() {
         padding: '12rem 5%',
         position: 'relative',
         overflow: 'hidden',
-        minHeight: '70vh',
+        minHeight: '80vh',
         display: 'flex',
         alignItems: 'center',
         borderTop: '1px solid #1e293b'
@@ -148,8 +148,21 @@ export default function AboutUs() {
         }}></div>
 
         <div style={{ maxWidth: '950px', margin: '0 auto', position: 'relative', zIndex: 2, textAlign: 'center' }}>
-          <div className="reveal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5rem' }}>
-            <h2 style={{ fontSize: '3.5rem', fontWeight: '800', lineHeight: '1.1', letterSpacing: '-0.02em', color: 'white' }}>Memoria, Verdad y Justicia <br /><span style={{ color: '#f87171' }}>La División Perdida</span></h2>
+          <div className="reveal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem' }}>
+            <div style={{ background: '#f87171', color: 'white', padding: '0.7rem 2rem', borderRadius: '99px', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '0.2em', display: 'inline-block', animation: 'pulse-memorial 2s infinite', boxShadow: '0 0 30px rgba(248, 113, 113, 0.5)' }}>
+              SON 30.000
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes pulse-memorial {
+                  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.7); }
+                  70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(248, 113, 113, 0); }
+                  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+                }
+              `}} />
+            </div>
+
+            <h2 style={{ fontSize: '3.5rem', fontWeight: '800', lineHeight: '1.1', letterSpacing: '-0.02em', color: 'white' }}>
+              Memoria, Verdad y Justicia <br /><span style={{ color: '#f87171' }}>La División Perdida</span>
+            </h2>
             <div style={{ width: '80px', height: '2px', background: 'var(--color-secondary)' }}></div>
             <p style={{ fontSize: '1.4rem', lineHeight: '1.8', color: '#cbd5e1', maxWidth: '800px' }}>
               "La División Perdida" rinde homenaje a estudiantes y docentes desaparecidos, rescatando la idea de que ningún compañero desaparecido pertenece al olvido.

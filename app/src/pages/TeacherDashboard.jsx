@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
-import { BookOpen, Calendar, LayoutGrid, FilePlus, Library, Share2, BookUser, ArrowRight } from 'lucide-react';
+import { BookOpen, Calendar, LayoutGrid, FilePlus, Library, Share2, BookUser, ArrowRight, Newspaper } from 'lucide-react';
 import { DashboardGrid, DashboardCard } from '../components/DashboardCards';
-import { gpdAuth, gpdDb } from '../firebase';
+import { db, auth, gpdAuth, gpdDb } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
 
@@ -44,6 +44,21 @@ function DualRoleNotice() {
 
 
 function TeacherHome() {
+  const [canPost, setCanPost] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkPerms = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        if (snap.exists() && snap.data().canPostNews) setCanPost(true);
+      } catch (err) { console.error(err); }
+    };
+    checkPerms();
+  }, []);
+
   return (
     <>
       <div className="header-flex">
@@ -66,6 +81,16 @@ function TeacherHome() {
           icon={<BookOpen size={24} />} 
           href="/docente/mis-cursos"
         />
+        {canPost && (
+          <DashboardCard 
+            role="docente" 
+            title="Diario Institucional" 
+            description="Tienes permisos para redactar noticias en el portal de la escuela." 
+            icon={<Newspaper size={24} />} 
+            href="/dashboard/escuela/noticias" 
+            color="#3b82f6"
+          />
+        )}
         <DashboardCard 
           role="docente" 
           title="Práctica Docente" 

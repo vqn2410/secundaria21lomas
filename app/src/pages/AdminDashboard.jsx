@@ -1,7 +1,7 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Plus, Check, Users, User, FileText, Settings, LayoutGrid, LayoutList, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key, UserCheck, ArrowRight } from 'lucide-react';
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { Plus, Check, Users, User, FileText, Settings, LayoutGrid, LayoutList, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key, UserCheck, ArrowRight, Newspaper, Loader2 } from 'lucide-react';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore';
 import { db, auth, gpdDb, gpdAuth } from '../firebase';
 import MainLayout from '../components/MainLayout';
 import { DashboardGrid, DashboardCard } from '../components/DashboardCards';
@@ -157,7 +157,8 @@ const PLANILLAS_SECTIONS = [
 
 const ESCUELA_SECTIONS = [
   { name: 'Gestión de Estructura', path: '/dashboard/escuela/estructura' },
-  { name: 'Horario Institucional', path: '/dashboard/escuela/horarios' }
+  { name: 'Horario Institucional', path: '/dashboard/escuela/horarios' },
+  { name: 'Gestión de Noticias', path: '/dashboard/escuela/noticias' }
 ];
 
 const PRACTICAS_SECTIONS = [
@@ -1392,6 +1393,383 @@ function EscuelaEstructura() {
         ))}
       </div>
     </div>
+  );
+}
+
+function MiEscuelaHome() {
+  const [ciclos, setCiclos] = useState([]);
+  const [newYear, setNewYear] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { fetchCiclos(); }, []);
+
+  const fetchCiclos = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'ciclos'));
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCiclos(list.length > 0 ? list.sort((a,b) => b.year - a.year) : [
+        { id: '2026', year: '2026', status: 'active', lastModified: new Date().toISOString() },
+        { id: '2025', year: '2025', status: 'archived', lastModified: new Date().toISOString() }
+      ]);
+      setLoading(false);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleAddYear = async () => {
+    if (!newYear) return;
+    try {
+      await setDoc(doc(db, 'ciclos', newYear), { 
+        year: newYear, 
+        status: 'active',
+        lastModified: new Date().toISOString()
+      });
+      setNewYear('');
+      fetchCiclos();
+    } catch (err) { alert("Error: " + err.message); }
+  };
+
+  return (
+    <>
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Mi Escuela</h1>
+        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Gestión de espacios, tiempos y comunicación institucional.</p>
+      </div>
+
+      <DashboardGrid>
+        <DashboardCard 
+          color="#f97316" 
+          title="Estructura (Cursos)" 
+          description="Gestión de divisiones, orientaciones y turnos escolares." 
+          icon={<School size={28} />} 
+          href="/dashboard/escuela/estructura"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#3b82f6" 
+          title="Diario Institucional" 
+          description="Gestión de noticias, comunicados y equipo de redacción." 
+          icon={<Newspaper size={28} />} 
+          href="/dashboard/escuela/noticias"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#06b6d4" 
+          title="Horarios" 
+          description="Configuración de grilla horaria por curso y docente." 
+          icon={<Clock size={28} />} 
+          href="/dashboard/escuela/horarios"
+          target="_self"
+        />
+      </DashboardGrid>
+
+      <div style={{ marginTop: '4rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Ciclos Lectivos</h2>
+        <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+           <input type="number" className="input-field" value={newYear} onChange={e => setNewYear(e.target.value)} placeholder="Ej: 2026" style={{ width: '100px', marginBottom: 0, border: 'none' }} />
+           <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={handleAddYear}>Inaugurar</button>
+        </div>
+      </div>
+
+      {loading ? <p>Cargando ciclos...</p> : (
+        <div className="grid grid-cols-3">
+          {ciclos.map(ciclo => (
+            <div key={ciclo.id} className="card" style={{ borderLeft: `6px solid ${ciclo.status === 'active' ? '#10b981' : '#cbd5e1'}` }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '1.75rem', fontWeight: 900 }}>{ciclo.year}</h3>
+                  <span className="badge" style={{ background: ciclo.status === 'active' ? '#dcfce7' : '#f1f5f9' }}>{ciclo.status === 'active' ? 'ACTIVO' : 'ARCHIVADO'}</span>
+               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function NewsManagement() {
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({ 
+    title: '', tag: 'Institucional', desc: '', img: '', 
+    date: new Date().toISOString().split('T')[0],
+    isFeatured: false, featuredStart: '', featuredEnd: '',
+    sections: [] 
+  });
+  const [activeTab, setActiveTab] = useState('posts'); 
+  const [users, setUsers] = useState([]);
+  const [searchEditor, setSearchEditor] = useState('');
+
+  useEffect(() => {
+    fetchNews();
+    fetchUsers();
+  }, []);
+
+  const fetchNews = async () => {
+    setLoading(true);
+    try {
+      const q = query(collection(db, 'noticias'), orderBy('date', 'desc'));
+      const snap = await getDocs(q);
+      setNews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { 
+      console.error("Fetch with ordering failed, trying simple fetch...", err);
+      try {
+        const snap = await getDocs(collection(db, 'noticias'));
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setNews(data.sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+      } catch (err2) { console.error("Simple fetch failed:", err2); }
+    }
+    setLoading(false);
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { console.error(err); }
+  };
+
+  const handleSave = async () => {
+    if (!form.title || !form.desc) return alert("Título y Descripción son obligatorios.");
+    try {
+      if (form.id) await updateDoc(doc(db, 'noticias', form.id), form);
+      else await addDoc(collection(db, 'noticias'), { ...form, createdAt: new Date() });
+      setIsEditing(false);
+      setForm({ 
+        title: '', tag: 'Institucional', desc: '', img: '', 
+        date: new Date().toISOString().split('T')[0],
+        isFeatured: false, featuredStart: '', featuredEnd: '',
+        sections: []
+      });
+      fetchNews();
+    } catch (err) { alert("Error al publicar: " + err.message); }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("¿Eliminar esta noticia definitivamente?")) {
+      try {
+        await deleteDoc(doc(db, 'noticias', id));
+        fetchNews();
+      } catch (err) { alert(err.message); }
+    }
+  };
+
+  const toggleRedactor = async (userId, currentVal) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { canPostNews: !currentVal });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, canPostNews: !currentVal } : u));
+    } catch (err) { alert(err.message); }
+  };
+
+  const TAGS = ["Académico", "Institucional", "Eventos", "Inscripciones", "Prácticas", "Docentes", "Comunidad"];
+
+  if (isEditing) {
+    return (
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+         <AdminSubNav mainTitle="InfoENSAM" mainPath="/dashboard/escuela/noticias" currentPath="/dashboard/escuela/noticias" subSections={ESCUELA_SECTIONS} />
+         <div className="header-flex">
+           <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{form.id ? 'Editar Noticia' : 'Publicar Nueva Noticia'}</h1>
+           <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+         </div>
+         <div className="card">
+            <div className="form-group">
+               <label>Título de la Noticia</label>
+               <input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Ej: Gran feria de ciencias..." />
+            </div>
+            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
+               <div className="form-group">
+                  <label>Categoría</label>
+                  <select className="input-field" value={form.tag} onChange={e => setForm({...form, tag: e.target.value})}>
+                     {TAGS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+               </div>
+               <div className="form-group">
+                  <label>Fecha de Publicación</label>
+                  <input className="input-field" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
+               </div>
+            </div>
+            <div className="form-group">
+               <label>URL de Imagen (Opcional)</label>
+               <input className="input-field" value={form.img} onChange={e => setForm({...form, img: e.target.value})} placeholder="https://..." />
+            </div>
+            <div className="form-group">
+               <label>Resumen / Copete inicial (Se muestra en la lista)</label>
+               <textarea className="input-field" style={{ minHeight: '100px' }} value={form.desc} onChange={e => setForm({...form, desc: e.target.value})} placeholder="Escribe aquí el resumen..." />
+            </div>
+
+            <div style={{ marginBottom: '2rem' }}>
+              <label style={{ fontWeight: 800, marginBottom: '1rem', display: 'block' }}>Cuerpo de la Noticia (Secciones con fotos)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {(form.sections || []).map((sec, idx) => (
+                  <div key={idx} style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '12px', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.75rem', color: '#64748b' }}>{sec.type === 'text' ? 'TEXTO' : 'IMAGEN'}</span>
+                      <button className="btn" style={{ height: '24px', padding: '0 0.5rem', color: '#ef4444' }} onClick={() => {
+                        const newSecs = [...form.sections];
+                        newSecs.splice(idx, 1);
+                        setForm({...form, sections: newSecs});
+                      }}>Eliminar</button>
+                    </div>
+                    {sec.type === 'text' ? (
+                      <textarea className="input-field" value={sec.val} onChange={e => {
+                        const newSecs = [...form.sections];
+                        newSecs[idx].val = e.target.value;
+                        setForm({...form, sections: newSecs});
+                      }} style={{ background: 'white' }} />
+                    ) : (
+                      <input className="input-field" value={sec.val} onChange={e => {
+                        const newSecs = [...form.sections];
+                        newSecs[idx].val = e.target.value;
+                        setForm({...form, sections: newSecs});
+                      }} placeholder="URL de la imagen..." style={{ background: 'white' }} />
+                    )}
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setForm({...form, sections: [...(form.sections || []), {type: 'text', val: ''}]})}>+ Agregar Párrafo</button>
+                  <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setForm({...form, sections: [...(form.sections || []), {type: 'image', val: ''}]})}>+ Agregar Foto</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <input type="checkbox" checked={form.isFeatured} onChange={e => setForm({...form, isFeatured: e.target.checked})} style={{ width: '20px', height: '20px' }} />
+                  <label style={{ fontWeight: 800, color: 'var(--color-primary)' }}>Destacar Noticia (Aparecerá primera)</label>
+               </div>
+               {form.isFeatured && (
+                  <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
+                     <div className="form-group">
+                        <label>Fecha Inicio Destacado</label>
+                        <input className="input-field" type="date" value={form.featuredStart} onChange={e => setForm({...form, featuredStart: e.target.value})} />
+                     </div>
+                     <div className="form-group">
+                        <label>Fecha Fin Destacado</label>
+                        <input className="input-field" type="date" value={form.featuredEnd} onChange={e => setForm({...form, featuredEnd: e.target.value})} />
+                     </div>
+                  </div>
+               )}
+            </div>
+            
+            <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} onClick={handleSave}>
+               {form.id ? 'Actualizar Noticia' : 'Publicar Ahora'}
+            </button>
+         </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <AdminSubNav mainTitle="Mi Escuela" mainPath="/dashboard/escuela" currentPath="/dashboard/escuela/noticias" subSections={ESCUELA_SECTIONS} />
+      <div className="header-flex">
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            Info
+            <span style={{ 
+              background: '#f87171', color: 'white', padding: '0.2rem 1rem', 
+              borderRadius: '99px', animation: 'pulse-news 2s infinite', 
+              boxShadow: '0 0 20px rgba(248, 113, 113, 0.4)', fontSize: '1.5rem', 
+              fontWeight: 900, display: 'inline-flex'
+            }}>
+              ENSAM
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes pulse-news {
+                  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.7); }
+                  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); }
+                  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(248, 113, 113, 0); }
+                }
+              `}} />
+            </span>
+          </h1>
+          <p>Administra el diario institucional y los permisos de redacción.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => { setForm({ title: '', tag: 'Institucional', desc: '', img: '', date: new Date().toISOString().split('T')[0] }); setIsEditing(true); }}>
+           + Nueva Publicación
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '2rem' }}>
+         <button onClick={() => setActiveTab('posts')} style={{ padding: '1rem 2rem', border: 'none', background: 'none', borderBottom: activeTab === 'posts' ? '4px solid var(--color-primary)' : 'none', color: activeTab === 'posts' ? 'var(--color-primary)' : 'var(--text-light)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+            Noticias Publicadas
+         </button>
+         <button onClick={() => setActiveTab('redactores')} style={{ padding: '1rem 2rem', border: 'none', background: 'none', borderBottom: activeTab === 'redactores' ? '4px solid var(--color-primary)' : 'none', color: activeTab === 'redactores' ? 'var(--color-primary)' : 'var(--text-light)', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+            Equipo de Redacción
+         </button>
+      </div>
+
+      {activeTab === 'posts' ? (
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {loading ? <div style={{ textAlign: 'center', padding: '3rem' }}><Loader2 className="animate-spin" /></div> : news.map(n => (
+               <div key={n.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }}>
+                  <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                     <div style={{ width: '80px', height: '60px', background: '#f1f5f9', borderRadius: '8px', overflow: 'hidden' }}>
+                        {n.img && <img src={n.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                     </div>
+                     <div>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                           <span className="badge" style={{ fontSize: '0.7rem' }}>{n.tag}</span>
+                           <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{n.date}</span>
+                        </div>
+                        <h4 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                           {n.title} {n.isFeatured && <span title="Programada como Destacada" style={{ color: '#f59e0b', marginLeft: '0.5rem' }}>★</span>}
+                        </h4>
+                     </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                     <button className="btn" onClick={() => { setForm(n); setIsEditing(true); }}><Pencil size={18} /></button>
+                     <button className="btn" style={{ color: '#ef4444' }} onClick={() => handleDelete(n.id)}><Trash2 size={18} /></button>
+                  </div>
+               </div>
+            ))}
+            {news.length === 0 && !loading && (
+              <div style={{ textAlign: 'center', padding: '4rem', background: 'white', borderRadius: '24px', border: '1px dashed var(--border)' }}>
+                 <p style={{ opacity: 0.5 }}>No hay noticias publicadas aún.</p>
+              </div>
+            )}
+         </div>
+      ) : (
+         <div className="card">
+            <h3 style={{ marginBottom: '1.5rem' }}>Asignar Permisos de Redacción</h3>
+            <div style={{ position: 'relative', marginBottom: '2rem' }}>
+               <Search size={18} style={{ position: 'absolute', left: '1rem', top: '15px', color: 'var(--text-light)' }} />
+               <input className="input-field" style={{ paddingLeft: '3rem' }} placeholder="Buscar docente o alumno por nombre o DNI..." value={searchEditor} onChange={e => setSearchEditor(e.target.value)} />
+            </div>
+            
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                    <tr>
+                      <th>Usuario</th>
+                      <th>Rol en Escuela</th>
+                      <th>Estado Redactor</th>
+                      <th style={{ textAlign: 'center' }}>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.filter(u => u.nombre?.toLowerCase().includes(searchEditor.toLowerCase()) || u.apellido?.toLowerCase().includes(searchEditor.toLowerCase()) || u.dni?.includes(searchEditor)).slice(0, 10).map(u => (
+                      <tr key={u.id}>
+                          <td><strong>{u.apellido}, {u.nombre}</strong> <br/> <small>{u.email}</small></td>
+                          <td><span className="badge" style={{ background: '#f1f5f9' }}>{u.role}</span></td>
+                          <td>
+                            {u.canPostNews ? 
+                                <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Check size={14} /> Habilitado</span> : 
+                                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Sin Permiso</span>
+                            }
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button className="btn" onClick={() => toggleRedactor(u.id, u.canPostNews)} style={{ color: u.canPostNews ? '#ef4444' : '#10b981', fontWeight: 700, minWidth: '130px' }}>
+                                {u.canPostNews ? 'Revocar Acceso' : 'Dar Acceso'}
+                            </button>
+                          </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+         </div>
+      )}
+    </>
   );
 }
 
@@ -2691,91 +3069,7 @@ function PlanillasHome() {
 
 // --- MI ESCUELA: GESTIÓN DE CICLOS Y PROPUESTAS ---
 
-function MiEscuelaHome() {
-  const [ciclos, setCiclos] = useState([]);
-  const [newYear, setNewYear] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchCiclos(); }, []);
-
-  const fetchCiclos = async () => {
-    try {
-      const snap = await getDocs(collection(db, 'ciclos'));
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCiclos(list.length > 0 ? list.sort((a,b) => b.year - a.year) : [
-        { id: '2026', year: '2026', status: 'active', lastModified: new Date().toISOString() },
-        { id: '2025', year: '2025', status: 'archived', lastModified: new Date().toISOString() }
-      ]);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAddYear = async () => {
-    if (!newYear) return;
-    try {
-      await setDoc(doc(db, 'ciclos', newYear), { 
-        year: newYear, 
-        status: 'active',
-        lastModified: new Date().toISOString()
-      });
-      setNewYear('');
-      fetchCiclos();
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  };
-
-  return (
-    <>
-      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Mi Escuela</h1>
-        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Gestión de la estructura física, horaria y académica institucional.</p>
-      </div>
-
-      <DashboardGrid>
-        <DashboardCard 
-          color="#f97316" 
-          title="Gestión de Estructura" 
-          description="Administra los cursos, divisiones y turnos de la institución." 
-          icon={<School size={28} />} 
-          href="/dashboard/escuela/estructura"
-          target="_self"
-        />
-        <DashboardCard 
-          color="#3b82f6" 
-          title="Horario Institucional" 
-          description="Estructura horaria detallada por curso y materia." 
-          icon={<Clock size={28} />} 
-          href="/dashboard/escuela/horarios"
-          target="_self"
-        />
-      </DashboardGrid>
-
-      <div style={{ marginTop: '4rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Ciclos Lectivos</h2>
-        <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
-           <input type="number" className="input-field" value={newYear} onChange={e => setNewYear(e.target.value)} placeholder="Ej: 2026" style={{ width: '100px', marginBottom: 0, border: 'none' }} />
-           <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={handleAddYear}>Inaugurar</button>
-        </div>
-      </div>
-
-      {loading ? <p>Cargando ciclos...</p> : (
-        <div className="grid grid-cols-3">
-          {ciclos.map(ciclo => (
-            <div key={ciclo.id} className="card" style={{ borderLeft: `6px solid ${ciclo.status === 'active' ? '#10b981' : '#cbd5e1'}` }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ fontSize: '1.75rem', fontWeight: 900 }}>{ciclo.year}</h3>
-                  <span className="badge" style={{ background: ciclo.status === 'active' ? '#dcfce7' : '#f1f5f9' }}>{ciclo.status === 'active' ? 'ACTIVO' : 'ARCHIVADO'}</span>
-               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
 
 // --- NUEVAS SECCIONES DE ESTUDIANTES ---
 
@@ -3691,7 +3985,7 @@ export default function AdminDashboard() {
         const snap = await getDoc(adminRef);
         const allPerms = [
           'personal', 'personal/database', 'personal/nomina', 'personal/pof', 'personal/novedades',
-          'escuela', 'escuela/estructura', 'escuela/horarios', 'boletin', 
+          'escuela', 'escuela/estructura', 'escuela/horarios', 'escuela/noticias', 'boletin', 
           'estudiantes', 'estudiantes/database', 'estudiantes/nominas',
           'planillas', 'planillas/calificacion', 'planillas/seguimiento',
           'ajustes', 'ajustes/usuarios', 'ajustes/sistema', 'ajustes/roles', 'ajustes/plan'
@@ -3731,6 +4025,7 @@ export default function AdminDashboard() {
     if (path.includes('planillas')) return 'Mis Planillas';
     if (path.includes('escuela/estructura')) return 'Estructura Institucional';
     if (path.includes('escuela/horarios')) return 'Horarios Institucionales';
+    if (path.includes('escuela/noticias')) return 'Gestión de Noticias';
     if (path.includes('escuela')) return 'Mi Escuela';
     if (path.includes('boletin')) return 'Boletín Digital';
     if (path.includes('ajustes/usuarios')) return 'Gestión de Usuarios';
@@ -3766,6 +4061,7 @@ export default function AdminDashboard() {
         <Route path="escuela" element={<MiEscuelaHome />} />
         <Route path="escuela/estructura" element={<EscuelaEstructura />} />
         <Route path="escuela/horarios" element={<EscuelaHorarios />} />
+        <Route path="escuela/noticias" element={<NewsManagement />} />
         <Route path="practicas" element={<PracticaHome />} />
         <Route path="practicas/ofertas" element={<PracticaOfertas />} />
         <Route path="practicas/institutos" element={<PracticaInstitutos />} />
