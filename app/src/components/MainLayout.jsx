@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User } from 'lucide-react';
-import { auth } from '../firebase';
+import { User, BookUser, ArrowLeftRight } from 'lucide-react';
+import { auth, gpdAuth } from '../firebase';
 import Logo from './Logo';
 
 export default function MainLayout({ children, role, title }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     document.title = title ? `Portal ENSAM | ${title}` : 'Portal ENSAM';
@@ -24,6 +25,7 @@ export default function MainLayout({ children, role, title }) {
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      await gpdAuth.signOut();
       navigate('/login');
     } catch (error) {
       console.error("Error signing out:", error);
@@ -32,36 +34,46 @@ export default function MainLayout({ children, role, title }) {
 
   return (
     <div className="dashboard" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header instead of Sidebar */}
       <header className="topbar" style={{ 
-        display: 'flex',
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        padding: '0 5%', 
-        height: '80px', 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 1000, 
-        backgroundColor: 'var(--white)',
-        borderBottom: '1px solid var(--border)',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '0 5%', height: '80px', position: 'sticky', top: 0, zIndex: 1000, 
+        backgroundColor: 'var(--white)', borderBottom: '1px solid var(--border)',
         boxShadow: 'var(--shadow-sm)' 
       }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Logo to={getDashboardPath()} />
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Selector de Rol Persistente */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginRight: '1rem' }}>
+            <button 
+              onClick={() => navigate(getDashboardPath())} 
+              style={{ 
+                padding: '0.4rem 1rem', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, 
+                cursor: 'pointer', background: 'white', color: 'var(--text)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              }}
+            >
+              Principal
+            </button>
+            <button 
+              onClick={() => navigate('/gpd-panel')} 
+              style={{ 
+                padding: '0.4rem 1rem', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, 
+                cursor: 'pointer', background: 'transparent', color: '#64748b'
+              }}
+            >
+              Portal GPD
+            </button>
+          </div>
+
           <div style={{ fontSize: '0.85rem', color: 'var(--text-light)', borderRight: '1px solid var(--border)', paddingRight: '1rem', fontWeight: 500 }}>
             {auth.currentUser?.email}
           </div>
+
           <button onClick={handleLogout} className="btn" style={{ 
-            background: 'none', 
-            border: '1px solid var(--border)', 
-            fontSize: '0.875rem', 
-            padding: '0.5rem 1rem',
-            color: 'var(--text-light)',
-            fontWeight: 600,
-            transition: 'var(--transition)'
+            background: 'none', border: '1px solid var(--border)', 
+            fontSize: '0.875rem', padding: '0.5rem 1rem', color: 'var(--text-light)', fontWeight: 600
           }}>
              Cerrar Sesión
           </button>
@@ -78,16 +90,10 @@ export default function MainLayout({ children, role, title }) {
       </main>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .dashboard { 
-          background: radial-gradient(circle at 10% 10%, #f1f5f9 0%, #ffffff 100%); 
-          min-height: 100vh;
-        }
+        .dashboard { background: radial-gradient(circle at 10% 10%, #f1f5f9 0%, #ffffff 100%); min-height: 100vh; }
         .main-content { background: transparent; }
         @media (max-width: 900px) {
-          .topbar > div:nth-child(2) { font-size: 0.8rem; margin: 0 1rem; flex: 1; }
-        }
-        @media (max-width: 700px) {
-          .topbar > div:nth-child(2) { display: none; }
+          .topbar > div:nth-child(2) > div:first-child { display: none; }
         }
       `}} />
     </div>

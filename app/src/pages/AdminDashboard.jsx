@@ -1,8 +1,8 @@
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Plus, Check, Users, User, FileText, Settings, LayoutGrid, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key, UserCheck } from 'lucide-react';
+import { Plus, Check, Users, User, FileText, Settings, LayoutGrid, LayoutList, GraduationCap, ClipboardList, Shield, Trash2, Pencil, X, ToggleLeft, ToggleRight, Book, Filter, ListChecks, School, Calendar, Clock, Clipboard, FileCheck, Contact, UserPlus, FileSearch, NotebookTabs, Search, ArrowLeft, Mail, MapPin, Phone, Activity, MoreVertical, Stethoscope, ShieldPlus, Siren, HeartPulse, Save, Hash, MessageSquare, ChevronLeft, ChevronRight, Home, ArrowUpLeft, LayoutDashboard, BookUser, Key, UserCheck, ArrowRight } from 'lucide-react';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
-import { db, auth, gpdDb } from '../firebase';
+import { db, auth, gpdDb, gpdAuth } from '../firebase';
 import MainLayout from '../components/MainLayout';
 import { DashboardGrid, DashboardCard } from '../components/DashboardCards';
 
@@ -144,15 +144,17 @@ const PLANILLAS_SECTIONS = [
 ];
 
 const ESCUELA_SECTIONS = [
-  { name: 'Estructura Institucional', path: '/dashboard/escuela' },
-  { name: 'Gestión de Materias y Horarios', path: '/dashboard/escuela/materias' }
+  { name: 'Gestión de Estructura', path: '/dashboard/escuela/estructura' },
+  { name: 'Horario Institucional', path: '/dashboard/escuela/horarios' }
 ];
 
 const PRACTICAS_SECTIONS = [
   { name: 'Gestión Institutos', path: '/dashboard/practicas/institutos' },
   { name: 'Gestión Profesorados', path: '/dashboard/practicas/profesorados' },
-  { name: 'Gestión de Docentes de Práctica', path: '/dashboard/practicas/docentes' },
-  { name: 'Base de Datos de Practicantes', path: '/dashboard/practicas/usuarios' },
+  { name: 'Docentes de Práctica', path: '/dashboard/practicas/docentes' },
+  { name: 'Ofertas de Vacantes', path: '/dashboard/practicas/ofertas' },
+  { name: 'Base de Practicantes', path: '/dashboard/practicas/usuarios' },
+  { name: 'Asignar Prácticas', path: '/dashboard/practicas/asignar' },
   { name: 'Nómina de Prácticas', path: '/dashboard/practicas/estudiantes' },
   { name: 'Gestión Accesos', path: '/dashboard/practicas/accesos' }
 ];
@@ -583,7 +585,8 @@ function PersonalNomina() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     cupof: '', cuil: '', docente: '', situacion: 'Titular',
-    curso: '', seccion: '', pid: '', alta: '', cese: '', motivo_cese: '', observaciones: ''
+    curso: '', seccion: '', pid: '', alta: '', cese: '', motivo_cese: '', observaciones: '',
+    suplencia_de: '', suplencia_nombre: ''
   });
   const [activeTab, setActiveTab] = useState('info');
 
@@ -604,7 +607,11 @@ function PersonalNomina() {
   };
 
   const handleNew = () => {
-    setEditForm({ cupof: '', cuil: '', docente: '', situacion: 'Titular', curso: '', seccion: '', pid: '', alta: '', cese: '', motivo_cese: '', observaciones: '' });
+    setEditForm({ 
+      cupof: '', cuil: '', docente: '', situacion: 'Titular', 
+      curso: '', seccion: '', pid: '', alta: '', cese: '', 
+      motivo_cese: '', observaciones: '', suplencia_de: '', suplencia_nombre: '' 
+    });
     setIsEditing(true);
   };
 
@@ -650,15 +657,64 @@ function PersonalNomina() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                  <div className="form-group">
                     <label>CUPOF</label>
-                    <input className="input-field" value={editForm.cupof} onChange={e => setEditForm({...editForm, cupof: e.target.value})} />
+                    <input 
+                      className="input-field" 
+                      value={editForm.cupof} 
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        setEditForm({...editForm, cupof: val});
+                        if (val.length >= 4) {
+                           try {
+                              const q = query(collection(db, 'cupof_master'), where('cupof', '==', val));
+                              const snap = await getDocs(q);
+                              if (!snap.empty) {
+                                 const d = snap.docs[0].data();
+                                 setEditForm(prev => ({ ...prev, cupof: val, pid: d.pid || '', curso: d.curso || '', seccion: d.seccion || '', turno: d.turno || 'Mañana' }));
+                              }
+                           } catch (err) { console.log("CUPOF search err", err); }
+                        }
+                      }} 
+                    />
                  </div>
                  <div className="form-group">
                     <label>CUIL</label>
-                    <input className="input-field" value={editForm.cuil} onChange={e => setEditForm({...editForm, cuil: e.target.value})} />
+                    <input 
+                      className="input-field" 
+                      value={editForm.cuil} 
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        setEditForm({...editForm, cuil: val});
+                        
+                        // Normalizamos: quitamos todo lo que no sea número
+                        const digits = val.replace(/\D/g, '');
+                        
+                        // Si tiene al menos 10 dígitos, intentamos extraer el DNI (típico 20-XXXXXXXX-1)
+                        let dniToSearch = "";
+                        if (digits.length >= 10) {
+                           dniToSearch = digits.slice(2, -1);
+                        } else if (digits.length >= 7 && digits.length <= 8) {
+                           dniToSearch = digits; // Es solo el DNI
+                        }
+
+                        if (dniToSearch.length >= 7) {
+                           try {
+                              const q = query(collection(db, 'personal'), where('dni', '==', dniToSearch));
+                              const snap = await getDocs(q);
+                              if (!snap.empty) {
+                                 const p = snap.docs[0].data();
+                                 setEditForm(prev => ({ ...prev, cuil: val, docente: `${p.apellido}, ${p.nombre}`.toUpperCase() }));
+                              }
+                           } catch (err) { console.log("CUIL search err", err); }
+                        }
+                      }} 
+                    />
                  </div>
                  <div className="form-group">
                     <label>Apellido y Nombre (DOCENTE)</label>
-                    <input className="input-field" value={editForm.docente} onChange={e => setEditForm({...editForm, docente: e.target.value})} />
+                    <div style={{ position: 'relative' }}>
+                       <input className="input-field" value={editForm.docente} onChange={e => setEditForm({...editForm, docente: e.target.value})} />
+                       {editForm.docente && <UserCheck size={16} style={{ position: 'absolute', right: '1rem', top: '15px', color: '#10b981' }} />}
+                    </div>
                  </div>
                  <div className="form-group">
                     <label>Situación de Revista</label>
@@ -668,20 +724,55 @@ function PersonalNomina() {
                        <option value="Suplente">Suplente</option>
                     </select>
                  </div>
+                 {editForm.situacion === 'Suplente' && (
+                    <div className="form-group" style={{ borderLeft: '4px solid #f59e0b', paddingLeft: '1rem', background: '#fffbeb' }}>
+                       <label style={{ color: '#d97706', fontWeight: 800 }}>REEMPLAZA A (CUIL Titular)</label>
+                       <input 
+                         className="input-field" 
+                         placeholder="CUIL del Titular..." 
+                         value={editForm.suplencia_de} 
+                         onChange={async (e) => {
+                           const val = e.target.value;
+                           setEditForm({...editForm, suplencia_de: val});
+                           const digits = val.replace(/\D/g, '');
+                           let dniToSearch = (digits.length >= 10) ? digits.slice(2, -1) : (digits.length >= 7 ? digits : "");
+                           if (dniToSearch.length >= 7) {
+                              try {
+                                 const q = query(collection(db, 'personal'), where('dni', '==', dniToSearch));
+                                 const snap = await getDocs(q);
+                                 if (!snap.empty) {
+                                    const p = snap.docs[0].data();
+                                    setEditForm(prev => ({ ...prev, suplencia_nombre: `${p.apellido}, ${p.nombre}`.toUpperCase() }));
+                                 }
+                              } catch (err) { }
+                           }
+                         }} 
+                       />
+                       {editForm.suplencia_nombre && (
+                         <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#d97706', marginTop: '0.5rem' }}>
+                           Suple a: {editForm.suplencia_nombre}
+                         </p>
+                       )}
+                    </div>
+                 )}
               </div>
            </div>
 
            <div className="card">
               <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.5rem' }}>Ubicación y Asignatura</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                     <div className="form-group">
-                       <label>Curso</label>
-                       <input className="input-field" value={editForm.curso} onChange={e => setEditForm({...editForm, curso: e.target.value})} />
+                       <label>Curso y Sección</label>
+                       <input className="input-field" placeholder="Ej: 1° 2da" value={editForm.curso} onChange={e => setEditForm({...editForm, curso: e.target.value})} />
                     </div>
                     <div className="form-group">
-                       <label>Sección</label>
-                       <input className="input-field" value={editForm.seccion} onChange={e => setEditForm({...editForm, seccion: e.target.value})} />
+                       <label>Turno</label>
+                       <select className="input-field" value={editForm.turno} onChange={e => setEditForm({...editForm, turno: e.target.value})}>
+                          <option value="Mañana">Mañana</option>
+                          <option value="Tarde">Tarde</option>
+                          <option value="Vespertino">Vespertino</option>
+                       </select>
                     </div>
                  </div>
                  <div className="form-group">
@@ -693,6 +784,7 @@ function PersonalNomina() {
                       </p>
                     )}
                  </div>
+                 <ScheduleLookup pid={editForm.pid} curso={editForm.curso} />
               </div>
            </div>
 
@@ -778,7 +870,7 @@ function PersonalNomina() {
                     </div>
                     <div>
                        <p style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textTransform: 'uppercase' }}>Ubicación Curricular</p>
-                       <p style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '0.4rem' }}>{n.curso} Año {n.seccion} Sección</p>
+                       <p style={{ fontSize: '1.2rem', fontWeight: 800, marginTop: '0.4rem' }}>{n.curso}</p>
                        <p style={{ fontWeight: 600, color: 'var(--text-light)' }}>Materia: <span style={{ color: 'var(--color-primary)' }}>({n.pid})</span> {PID_CATALOG[n.pid] || n.materia}</p>
                     </div>
                  </div>
@@ -883,11 +975,76 @@ function PersonalNomina() {
   );
 }
 
+function ScheduleLookup({ pid, curso, onMatch }) {
+  const [match, setMatch] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!pid || !curso) { setMatch(null); return; }
+    const lookup = async () => {
+      setLoading(true);
+      try {
+        const cleanPid = pid.trim().toUpperCase();
+        const cleanCurso = curso.trim().toUpperCase();
+        
+        const variations = [
+          cleanCurso,
+          cleanCurso.replace(/\s+/g, ''),
+          cleanCurso.replace(/(\d+°)\s*(\d+°)/, "$1 $2"),
+          cleanCurso.replace("°", "° ")
+        ];
+        const uniqueVariations = [...new Set(variations)];
+
+        const q = query(
+          collection(db, 'materias_horarios'), 
+          where('materia', '==', cleanPid), 
+          where('curso', 'in', uniqueVariations)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+           const d = snap.docs[0].data();
+           setMatch(d);
+           if (onMatch && d.bloques) {
+              const formatted = d.bloques.map(b => `${b.dia.substring(0,3)} ${b.desde}-${b.hasta}`).join(', ');
+              onMatch(formatted);
+           }
+        } else setMatch(null);
+      } catch (err) { console.error("Schedule query err:", err); }
+      setLoading(false);
+    };
+    const timer = setTimeout(lookup, 500);
+    return () => clearTimeout(timer);
+  }, [pid, curso]);
+
+  if (!pid || !curso) return null;
+
+  return (
+    <div style={{ marginTop: '1.5rem', padding: '1rem', background: match ? '#f0fdf4' : '#fff7ed', borderRadius: '12px', border: `1px solid ${match ? '#bbf7d0' : '#ffedd5'}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+        <Clock size={16} color={match ? '#16a34a' : '#ea580c'} />
+        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: match ? '#16a34a' : '#ea580c' }}>
+          {loading ? 'Buscando cronograma...' : match ? 'HORARIO DETECTADO' : 'SIN HORARIO DEFINIDO'}
+        </span>
+      </div>
+      {match && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {match.bloques?.map((b, i) => (
+            <div key={i} style={{ background: 'white', padding: '0.3rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #bbf7d0' }}>
+              {b.dia}: {b.desde} - {b.hasta}
+            </div>
+          ))}
+        </div>
+      )}
+      {!match && !loading && <p style={{ fontSize: '0.75rem', opacity: 0.7 }}>Define el horario en Mi Escuela &gt; Horario Institucional para que figure aquí.</p>}
+    </div>
+  );
+}
+
 function PersonalCUPOF() {
   const [cupofs, setCupofs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({ cupof: '', pid: '', curso: '', seccion: '', turno: 'Mañana' });
+  const [form, setForm] = useState({ cupof: '', pid: '', curso: '', turno: 'Mañana' });
 
   useEffect(() => { fetchCUPOFs(); }, []);
 
@@ -906,34 +1063,55 @@ function PersonalCUPOF() {
     setIsEditing(false); fetchCUPOFs();
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este CUPOF?")) return;
+    try {
+      await deleteDoc(doc(db, 'cupof_master', id));
+      fetchCUPOFs();
+    } catch (err) { alert(err.message); }
+  };
+
   if (isEditing) {
     return (
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/cupof" subSections={PERSONAL_SECTIONS} />
         <div className="card">
            <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar CUPOF' : 'Nuevo Registro CUPOF'}</h1>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group"><label>N° CUPOF</label><input className="input-field" value={form.cupof} onChange={e => setForm({...form, cupof: e.target.value})} /></div>
-              <div className="form-group">
-                <label>PID</label>
-                <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
-                {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
-              </div>
-              <div className="form-group"><label>Curso</label><input className="input-field" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} /></div>
-              <div className="form-group"><label>Sección</label><input className="input-field" value={form.seccion} onChange={e => setForm({...form, seccion: e.target.value})} /></div>
-              <div className="form-group">
-                <label>Turno</label>
-                <select className="input-field" value={form.turno} onChange={e => setForm({...form, turno: e.target.value})}>
-                   <option value="Mañana">Mañana</option>
-                   <option value="Tarde">Tarde</option>
-                   <option value="Vespertino">Vespertino</option>
-                </select>
-              </div>
-           </div>
-           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar</button>
-              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
-           </div>
+            <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+               <div className="form-group"><label>N° CUPOF</label><input className="input-field" value={form.cupof} onChange={e => setForm({...form, cupof: e.target.value})} /></div>
+               <div className="form-group">
+                 <label>PID (Materia)</label>
+                 <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
+                 {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
+               </div>
+               <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                 <label>Curso y Sección (Ej: 1° 2da)</label>
+                 <input className="input-field" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} />
+               </div>
+               <div className="form-group">
+                 <label>Turno</label>
+                 <select className="input-field" value={form.turno} onChange={e => setForm({...form, turno: e.target.value})}>
+                    <option value="Mañana">Mañana</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Vespertino">Vespertino</option>
+                 </select>
+               </div>
+            </div>
+
+            <div style={{ gridColumn: 'span 3' }}>
+              <ScheduleLookup 
+                pid={form.pid} 
+                curso={form.curso} 
+                onMatch={(formatted) => {
+                  if (!form.horario) setForm(prev => ({ ...prev, horario: formatted }));
+                }}
+              />
+            </div>
+
+            <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+               <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar CUPOF</button>
+               <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
+            </div>
         </div>
       </div>
     );
@@ -944,7 +1122,7 @@ function PersonalCUPOF() {
       <AdminSubNav mainTitle="Mi Personal" mainPath="/dashboard/personal" currentPath="/dashboard/personal/cupof" subSections={PERSONAL_SECTIONS} />
       <div className="header-flex">
         <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Mis CUPOF</h1>
-        <button className="btn btn-primary" onClick={() => { setForm({ cupof: '', pid: '', curso: '', seccion: '', turno: 'Mañana' }); setIsEditing(true); }}>+ Nuevo CUPOF</button>
+        <button className="btn btn-primary" onClick={() => { setForm({ cupof: '', pid: '', curso: '', turno: 'Mañana' }); setIsEditing(true); }}>+ Nuevo CUPOF</button>
       </div>
       <div className="table-wrapper">
         <table>
@@ -954,9 +1132,14 @@ function PersonalCUPOF() {
               <tr key={c.id}>
                 <td style={{ fontWeight: 800, fontFamily: 'monospace' }}>{c.cupof}</td>
                 <td><span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>({c.pid})</span> {PID_CATALOG[c.pid]}</td>
-                <td>{c.curso} {c.seccion}</td>
+                <td>{c.curso}</td>
                 <td><span className="badge" style={{ background: '#f1f5f9' }}>{c.turno}</span></td>
-                <td><button className="btn" onClick={() => { setForm(c); setIsEditing(true); }}><Pencil size={16} /></button></td>
+                <td>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                     <button className="btn" onClick={() => { setForm(c); setIsEditing(true); }}><Pencil size={16} /></button>
+                     <button className="btn" style={{ color: '#ef4444' }} onClick={() => handleDelete(c.id)}><Trash2 size={16} /></button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1031,41 +1214,57 @@ function PracticaHome() {
       <DashboardGrid>
         <DashboardCard 
           color="#3b82f6" 
-          title="Gestión de Institutos" 
-          description="Directorio de Institutos (ISFD) co-formadores." 
-          icon={<LayoutGrid size={28} />} 
+          title="Directorio de Institutos" 
+          description="Gestión de Institutos Superior (ISFD) co-formadores." 
+          icon={<MapPin size={28} />} 
           href="/dashboard/practicas/institutos"
           target="_self"
         />
         <DashboardCard 
           color="#3b82f6" 
-          title="Gestión de Docentes de Práctica" 
-          description="Directorio de supervisores y docentes tutores de institutos (ISFD)." 
+          title="Supervisores de Práctica" 
+          description="Base de datos de docentes tutores y supervisores de ISFD." 
           icon={<BookUser size={28} />} 
           href="/dashboard/practicas/docentes"
           target="_self"
         />
         <DashboardCard 
           color="#8b5cf6" 
-          title="Gestión de Profesorados" 
-          description="Administra las carreras y materias habilitadas para los alumnos." 
-          icon={<Book size={28} />} 
+          title="Gestión Profesorados" 
+          description="Carreras y materias (PIDs) habilitadas para práctica." 
+          icon={<GraduationCap size={28} />} 
           href="/dashboard/practicas/profesorados"
           target="_self"
         />
         <DashboardCard 
           color="#10b981" 
-          title="Base de Datos de Practicantes" 
-          description="Nómina de alumnos registrados vía formulario con foto 4x4." 
-          icon={<UserCheck size={28} />} 
+          title="Portal de Practicantes" 
+          description="Alumnos registrados vía formulario con legajo digital." 
+          icon={<Users size={28} />} 
           href="/dashboard/practicas/usuarios"
           target="_self"
         />
         <DashboardCard 
-          color="#10b981" 
-          title="Nómina de Prácticas" 
-          description="Listados detallados por materia y seguimiento escolar." 
-          icon={<GraduationCap size={28} />} 
+          color="#ec4899" 
+          title="Maestro de Vacantes" 
+          description="Habilita ofertas de vacantes basadas en nómina oficial." 
+          icon={<LayoutList size={28} />} 
+          href="/dashboard/practicas/ofertas"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#db2777" 
+          title="Asignar Prácticas" 
+          description="Aprueba y oficializa las inscripciones de residentes." 
+          icon={<UserPlus size={28} />} 
+          href="/dashboard/practicas/asignar"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#06b6d4" 
+          title="Nómina Nominal" 
+          description="Listado oficial de residentes con destino asignado." 
+          icon={<ListChecks size={28} />} 
           href="/dashboard/practicas/estudiantes"
           target="_self"
         />
@@ -1082,183 +1281,258 @@ function PracticaHome() {
   );
 }
 
-function PracticaProfesorados() {
-  const [profesorados, setProfesorados] = useState([]);
+function EscuelaEstructura() {
+  const [cursos, setCursos] = useState([]);
+  const [orientaciones, setOrientaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState({ nombre: '', materias: '' });
+  const [form, setForm] = useState({ nombre: '', orientacion: '', turno: 'Mañana' });
 
-  const fetchProfesorados = async () => {
-    setLoading(true);
+  useEffect(() => { 
+    fetchCursos();
+    fetchOrientaciones();
+  }, []);
+
+  const fetchCursos = async () => {
     try {
-      const snap = await getDocs(collection(gpdDb, 'profesorados'));
-      setProfesorados(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (err) { console.error(err); }
+      const snap = await getDocs(collection(db, 'cursos'));
+      setCursos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { alert("Error al leer 'cursos': " + err.message); }
+  };
+
+  const fetchOrientaciones = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'orientaciones'));
+      setOrientaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { alert("Error al leer 'orientaciones': " + err.message); }
     setLoading(false);
   };
 
-  useEffect(() => { fetchProfesorados(); }, []);
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!formData.nombre) return;
+  const handleSave = async () => {
     try {
-      if (formData.id) await updateDoc(doc(gpdDb, 'profesorados', formData.id), formData);
-      else await addDoc(collection(gpdDb, 'profesorados'), formData);
-      setFormData({ nombre: '', materias: '' });
+      if (form.id) await updateDoc(doc(db, 'cursos', form.id), form);
+      else await addDoc(collection(db, 'cursos'), form);
       setIsAdding(false);
-      fetchProfesorados();
+      setForm({ nombre: '', orientacion: '', turno: 'Mañana' });
+      fetchCursos();
     } catch (err) { alert(err.message); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Eliminar profesorado?")) return;
-    await deleteDoc(doc(gpdDb, 'profesorados', id));
-    fetchProfesorados();
+    if (!window.confirm("¿Seguro que deseas eliminar este curso?")) return;
+    await deleteDoc(doc(db, 'cursos', id));
+    fetchCursos();
   };
 
   return (
     <div>
-      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/profesorados" subSections={PRACTICAS_SECTIONS} />
+      <AdminSubNav mainTitle="Mi Escuela" mainPath="/dashboard/escuela" currentPath="/dashboard/escuela/estructura" subSections={ESCUELA_SECTIONS} />
       <div className="header-flex">
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gestión de Profesorados</h1>
-        {!isAdding && <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Agregar Profesorado</button>}
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gestión de Estructura (Cursos)</h1>
+        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Nuevo Curso</button>
       </div>
 
       {isAdding && (
-        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid var(--color-primary)' }}>
-          <form onSubmit={handleSave}>
-            <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
-              <div className="form-group">
-                <label>Nombre del Profesorado *</label>
-                <input required className="input-field" placeholder="Ej: Prof. de Biología" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label>Códigos Materias (Separados por coma)</label>
-                <input className="input-field" placeholder="Ej: BLG, CNT, CDT" value={formData.materias} onChange={e => setFormData({...formData, materias: e.target.value})} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-              <button type="button" className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Guardar</button>
-            </div>
-          </form>
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <h3>{form.id ? 'Editar Curso' : 'Nuevo Curso'}</h3>
+          <div className="grid grid-cols-4" style={{ gap: '1rem', marginTop: '1.5rem' }}>
+             <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label>Nombre del Curso y División</label>
+                <input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} placeholder="Ej: 1° 2da" />
+             </div>
+             <div className="form-group">
+               <label>Orientación</label>
+               <select className="input-field" value={form.orientacion} onChange={e => setForm({...form, orientacion: e.target.value})}>
+                 <option value="">Seleccione Orientación...</option>
+                 <option value="Ciclo Básico">Ciclo Básico</option>
+                 <option value="Ciencias Naturales">Ciencias Naturales</option>
+                 <option value="Ciencias Sociales">Ciencias Sociales</option>
+                 <option value="Educación Física">Educación Física</option>
+               </select>
+             </div>
+             <div className="form-group">
+               <label>Turno</label>
+               <select className="input-field" value={form.turno} onChange={e => setForm({...form, turno: e.target.value})}>
+                 <option value="Mañana">Mañana</option>
+                 <option value="Tarde">Tarde</option>
+                 <option value="Vespertino">Vespertino</option>
+               </select>
+             </div>
+          </div>
+          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+             <button className="btn btn-primary" onClick={handleSave}>Guardar Curso</button>
+             <button className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
+          </div>
         </div>
       )}
 
-      <div className="card" style={{ padding: 0 }}>
-        <table>
-          <thead><tr><th>Nombre</th><th>Materias Asociadas</th><th>Acciones</th></tr></thead>
-          <tbody>
-            {profesorados.map(p => (
-              <tr key={p.id}>
-                <td style={{ fontWeight: 700 }}>{p.nombre}</td>
-                <td>{p.materias}</td>
-                <td>
-                  <button className="btn" onClick={() => { setFormData(p); setIsAdding(true); }}><Pencil size={16} /></button>
-                  <button className="btn" onClick={() => handleDelete(p.id)} style={{ color: 'red' }}><Trash2 size={16} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-4">
+        {cursos.map(c => (
+          <div key={c.id} className="card" style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-primary)' }}>{c.nombre}</h2>
+            <p style={{ fontWeight: 600, fontSize: '0.875rem', opacity: 0.7 }}>{c.orientacion}</p>
+            <span className="badge" style={{ marginTop: '0.5rem' }}>{c.turno}</span>
+            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+              <button className="btn" onClick={() => { setForm(c); setIsAdding(true); }}><Pencil size={16} /></button>
+              <button className="btn" style={{ color: '#ef4444' }} onClick={() => handleDelete(c.id)}><Trash2 size={16} /></button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-function EscuelaMaterias() {
-  const [materias, setMaterias] = useState([]);
+function EscuelaHorarios() {
+  const [horarios, setHorarios] = useState([]);
+  const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [form, setForm] = useState({ 
-    nombre: '', curso: '', profesor: '', dia: 'Lunes', 
-    desde: '08:00', hasta: '10:00', aula: '' 
+    materia: '', curso: '', profesor: '', pof: '',
+    bloques: [{ dia: 'Lunes', desde: '07:30', hasta: '08:30' }] 
   });
 
-  const fetchMaterias = async () => {
-    setLoading(true);
-    try {
-      const snap = await getDocs(collection(db, 'materias_horarios'));
-      setMaterias(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (err) { console.error(err); }
-    setLoading(false);
+  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const hSnap = await getDocs(collection(db, 'materias_horarios'));
+        setHorarios(hSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
+        const cSnap = await getDocs(collection(db, 'cursos'));
+        setCursos(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (err) { alert("Error al leer datos del horario: " + err.message); }
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const addBloque = () => {
+    setForm({ ...form, bloques: [...form.bloques, { dia: 'Lunes', desde: '07:30', hasta: '08:30' }] });
   };
 
-  useEffect(() => { fetchMaterias(); }, []);
+  const removeBloque = (idx) => {
+    setForm({ ...form, bloques: form.bloques.filter((_, i) => i !== idx) });
+  };
+
+  const handleBloqueChange = (idx, field, val) => {
+    const newBloques = [...form.bloques];
+    newBloques[idx][field] = val;
+    setForm({ ...form, bloques: newBloques });
+  };
 
   const handleSave = async () => {
-    if (!form.nombre || !form.curso) return alert("Faltan datos");
+    if (!form.materia || !form.curso) return alert("Faltan datos");
     try {
       if (form.id) await updateDoc(doc(db, 'materias_horarios', form.id), form);
       else await addDoc(collection(db, 'materias_horarios'), form);
       setIsAdding(false);
-      setForm({ nombre: '', curso: '', profesor: '', dia: 'Lunes', desde: '08:00', hasta: '10:00', aula: '' });
-      fetchMaterias();
+      setForm({ materia: '', curso: '', profesor: '', pof: '', bloques: [{ dia: 'Lunes', desde: '07:30', hasta: '08:30' }] });
+      const hSnap = await getDocs(collection(db, 'materias_horarios'));
+      setHorarios(hSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) { alert(err.message); }
   };
 
-  const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-
   return (
     <div>
-      <AdminSubNav mainTitle="Mi Escuela" mainPath="/dashboard/escuela" currentPath="/dashboard/escuela/materias" subSections={ESCUELA_SECTIONS} />
-      
+      <AdminSubNav mainTitle="Mi Escuela" mainPath="/dashboard/escuela" currentPath="/dashboard/escuela/horarios" subSections={ESCUELA_SECTIONS} />
       <div className="header-flex">
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gestión de Materias y Horarios</h1>
-        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Nueva Materia / Horario</button>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Horario Institucional</h1>
+        <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Asignar Nuevo Horario</button>
       </div>
 
       {isAdding && (
-        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid var(--color-primary)' }}>
-          <h3 style={{ marginBottom: '1.5rem', fontWeight: 800 }}>{form.id ? 'Editar Materia' : 'Nueva Asignación de Horario'}</h3>
-          <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-            <div className="form-group"><label>Materia</label><input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} placeholder="Ej: Matemática" /></div>
-            <div className="form-group"><label>Curso</label><input className="input-field" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} placeholder="Ej: 1° 1ra" /></div>
-            <div className="form-group"><label>Profesor Designado</label><input className="input-field" value={form.profesor} onChange={e => setForm({...form, profesor: e.target.value})} /></div>
-            <div className="form-group">
-              <label>Día</label>
-              <select className="input-field" value={form.dia} onChange={e => setForm({...form, dia: e.target.value})}>
-                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div className="form-group"><label>Hora Inicio</label><input type="time" className="input-field" value={form.desde} onChange={e => setForm({...form, desde: e.target.value})} /></div>
-            <div className="form-group"><label>Hora Fin</label><input type="time" className="input-field" value={form.hasta} onChange={e => setForm({...form, hasta: e.target.value})} /></div>
-          </div>
-          <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-            <button className="btn btn-primary" onClick={handleSave}>Guardar Horario</button>
-            <button className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
-          </div>
+        <div className="card" style={{ marginBottom: '2.5rem', borderTop: '4px solid var(--color-primary)' }}>
+           <h2 style={{ marginBottom: '2rem' }}>{form.id ? 'Modificar Horario' : 'Definir Horario de Materia'}</h2>
+           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
+              <div className="form-group">
+                <label>Materia (Nombre Completo o Código)</label>
+                <input className="input-field" value={form.materia} onChange={e => setForm({...form, materia: e.target.value.toUpperCase()})} />
+                {PID_CATALOG[form.materia] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.materia]}</p>}
+              </div>
+              <div className="form-group">
+                <label>Curso Destino</label>
+                <select className="input-field" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})}>
+                   <option value="">Seleccione Curso...</option>
+                   {cursos.map(c => <option key={c.id} value={c.nombre}>{c.nombre} ({c.turno})</option>)}
+                </select>
+              </div>
+           </div>
+
+           <div style={{ marginTop: '2.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Bloques Horarios</h3>
+                <button className="btn btn-primary" style={{ fontSize: '0.75rem' }} onClick={addBloque}>+ Agregar Bloque</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {form.bloques.map((b, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ flex: 2 }}>
+                       <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Día</label>
+                       <select className="input-field" value={b.dia} onChange={e => handleBloqueChange(idx, 'dia', e.target.value)}>
+                          {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                       </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                       <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Desde</label>
+                       <input type="time" className="input-field" value={b.desde} onChange={e => handleBloqueChange(idx, 'desde', e.target.value)} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                       <label style={{ fontSize: '0.75rem', fontWeight: 700 }}>Hasta</label>
+                       <input type="time" className="input-field" value={b.hasta} onChange={e => handleBloqueChange(idx, 'hasta', e.target.value)} />
+                    </div>
+                    <button className="btn" style={{ padding: '0.75rem', color: '#ef4444' }} onClick={() => removeBloque(idx)} disabled={form.bloques.length === 1}><Trash2 size={18} /></button>
+                  </div>
+                ))}
+              </div>
+           </div>
+
+           <div style={{ marginTop: '3rem', display: 'flex', gap: '1rem' }}>
+               <button className="btn btn-primary" onClick={handleSave}>Confirmar Programa de Horarios</button>
+               <button className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
+           </div>
         </div>
       )}
 
       <div className="card" style={{ padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ background: '#f8fafc' }}>
-            <tr>
-              <th style={{ padding: '1rem' }}>Materia</th>
-              <th>Día</th>
-              <th>Horario</th>
-              <th>Curso</th>
-              <th>Docente</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {materias.map(m => (
-              <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '1rem', fontWeight: 700 }}>{m.nombre}</td>
-                <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>{m.dia}</td>
-                <td>{m.desde} - {m.hasta}</td>
-                <td style={{ fontWeight: 600 }}>{m.curso}</td>
-                <td>{m.profesor}</td>
-                <td>
-                  <button className="btn" onClick={() => { setForm(m); setIsAdding(true); }}><Pencil size={16} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+         {loading ? <p style={{ padding: '2rem', textAlign: 'center' }}>Procesando cronograma...</p> : (
+           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+             <thead style={{ background: '#f8fafc' }}>
+               <tr>
+                 <th style={{ padding: '1.25rem', textAlign: 'left' }}>Curso</th>
+                 <th style={{ textAlign: 'left' }}>Materia</th>
+                 <th style={{ textAlign: 'left' }}>Horarios Semanales</th>
+                 <th style={{ textAlign: 'center' }}>Acciones</th>
+               </tr>
+             </thead>
+             <tbody>
+               {horarios.map(h => (
+                 <tr key={h.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                   <td style={{ padding: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>{h.curso}</td>
+                   <td>
+                      <div style={{ fontWeight: 700 }}>({h.materia})</div>
+                      <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>{PID_CATALOG[h.materia]}</div>
+                   </td>
+                   <td>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {h.bloques?.map((b, i) => (
+                          <div key={i} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.25rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            <span style={{ color: 'var(--color-primary)' }}>{b.dia}</span>: {b.desde} - {b.hasta}
+                          </div>
+                        ))}
+                      </div>
+                   </td>
+                   <td style={{ textAlign: 'center' }}>
+                      <button className="btn" onClick={() => { setForm(h); setIsAdding(true); }}><Pencil size={16} /></button>
+                      <button className="btn" style={{ color: '#ef4444' }} onClick={async () => { if(window.confirm("¿Seguro?")) { await deleteDoc(doc(db,'materias_horarios', h.id)); setHorarios(prev => prev.filter(x => x.id !== h.id)); } }}><Trash2 size={16} /></button>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         )}
       </div>
     </div>
   );
@@ -1346,6 +1620,10 @@ function PracticaUsuarios() {
             <div className="form-group"><label>Profesorado / Carrera</label><input className="input-field" value={form.profesorado} onChange={e => setForm({...form, profesorado: e.target.value})} /></div>
             <div className="form-group"><label>Teléfono</label><input className="input-field" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} /></div>
             <div className="form-group"><label>Dirección</label><input className="input-field" value={form.direccion} onChange={e => setForm({...form, direccion: e.target.value})} /></div>
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+              <label>Docente de Práctica (ISFD / Supervisor)</label>
+              <input className="input-field" value={form.docente_practica} onChange={e => setForm({...form, docente_practica: e.target.value})} placeholder="Nombre completo del docente supervisor del Instituto" />
+            </div>
           </div>
           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
             <button className="btn btn-primary" onClick={handleSave}>Guardar Cambios</button>
@@ -1579,6 +1857,366 @@ function PracticaDocentes() {
   );
 }
 
+function PracticaProfesorados() {
+  const [profesorados, setProfesorados] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
+  const [form, setForm] = useState({ nombre: '', materias: '' });
+
+  const fetchProfesorados = async () => {
+    setLoading(true);
+    try {
+      const snap = await getDocs(collection(gpdDb, 'profesorados'));
+      setProfesorados(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchProfesorados(); }, []);
+
+  const handleSave = async () => {
+    if (!form.nombre) return alert("El nombre es obligatorio");
+    try {
+      // Limpiamos los materiales para asegurar que sean PIDs limpios
+      const cleanForm = { 
+        ...form, 
+        materias: form.materias.split(',').map(m => m.trim().toUpperCase()).join(', ') 
+      };
+      
+      if (form.id) await updateDoc(doc(gpdDb, 'profesorados', form.id), cleanForm);
+      else await addDoc(collection(gpdDb, 'profesorados'), cleanForm);
+      
+      setForm({ nombre: '', materias: '' });
+      setIsAdding(false);
+      fetchProfesorados();
+    } catch (err) { alert(err.message); }
+  };
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/profesorados" subSections={PRACTICAS_SECTIONS} />
+      <div className="header-flex">
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Gestión de Profesorados y Carreras</h1>
+        {!isAdding && <button className="btn btn-primary" onClick={() => setIsAdding(true)}>+ Nueva Carrera / Profesorado</button>}
+      </div>
+
+      {isAdding && (
+        <div className="card" style={{ marginBottom: '2rem', borderTop: '4px solid #3b82f6' }}>
+           <h3 style={{ marginBottom: '1.5rem' }}>{form.id ? 'Editar Carrera' : 'Registrar Carrera de ISFD'}</h3>
+           <div className="grid grid-cols-2" style={{ gap: '1rem' }}>
+              <div className="form-group">
+                <label>Nombre de la Carrera</label>
+                <input className="input-field" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} placeholder="Ej: Profesorado de Ed. Secundaria en Biología" />
+              </div>
+              <div className="form-group">
+                <label>Materias Habilitadas (PIDs separados por coma)</label>
+                <input className="input-field" value={form.materias} onChange={e => setForm({...form, materias: e.target.value})} placeholder="Ej: BLG, BGS, CNT" />
+                <p style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.5rem' }}>Ingresa los PIDs de las materias donde este profesorado puede realizar prácticas.</p>
+              </div>
+           </div>
+           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+              <button className="btn btn-primary" onClick={handleSave}>Guardar Profesorado</button>
+              <button className="btn" onClick={() => setIsAdding(false)}>Cancelar</button>
+           </div>
+        </div>
+      )}
+
+      <div className="card" style={{ padding: 0 }}>
+        {loading ? <p style={{ padding: '2rem', textAlign: 'center' }}>Cargando profesorados...</p> : (
+          <table>
+            <thead><tr><th>Carrera / Profesorado</th><th>PIDs Materias Asociadas</th><th style={{ textAlign: 'center' }}>Acciones</th></tr></thead>
+            <tbody>
+              {profesorados.map(p => (
+                <tr key={p.id}>
+                  <td style={{ fontWeight: 800, color: '#1e293b' }}>{p.nombre}</td>
+                  <td>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {p.materias?.split(',').map(m => (
+                        <span key={m} className="badge" title={PID_CATALOG[m.trim().toUpperCase()] || 'Materia'}>{m.trim()}</span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button className="btn" onClick={() => { setForm(p); setIsAdding(true); }}><Pencil size={16} /></button>
+                    <button className="btn" style={{ color: '#ef4444' }} onClick={async () => { if(window.confirm("¿Eliminar profesorado?")) { await deleteDoc(doc(gpdDb, 'profesorados', p.id)); fetchProfesorados(); } }}><Trash2 size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+              {profesorados.length === 0 && <tr><td colSpan="3" style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>No hay profesorados registrados aún.</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PracticaOfertas() {
+  const [nominaRows, setNominaRows] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [globalEnabled, setGlobalEnabled] = useState(true);
+
+  const fetchVacancies = async () => {
+    setLoading(true);
+    try {
+      // 1. Traemos configuraciones globales
+      const settingsSnap = await getDoc(doc(gpdDb, 'settings', 'inscripciones'));
+      if (settingsSnap.exists()) setGlobalEnabled(settingsSnap.data().enabled);
+
+      // 2. Traemos TODA la nómina institucional
+      const nomSnap = await getDocs(collection(db, 'nomina'));
+      const activeNomina = nomSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // 3. Traemos las ofertas publicadas en GPD (para saber el estado)
+      const offersSnap = await getDocs(collection(gpdDb, 'practicas_ofertas'));
+      const published = offersSnap.docs.reduce((acc, doc) => {
+         const d = doc.data();
+         acc[`${d.pid}-${d.curso}`] = { id: doc.id, ...d };
+         return acc;
+      }, {});
+
+      // 4. Cruzamos con Horarios
+      const horSnap = await getDocs(collection(db, 'materias_horarios'));
+      const schedules = horSnap.docs.reduce((acc, doc) => {
+         const d = doc.data();
+         acc[`${d.materia}-${d.curso}`] = d.bloques?.map(b => `${b.dia.substring(0,3)} ${b.desde}-${b.hasta}`).join(', ');
+         return acc;
+      }, {});
+
+      const getMasterListTask = activeNomina.map(async (n) => {
+         const key = `${n.pid}-${n.curso}`;
+         const pub = published[key];
+         
+         // Contamos inscriptos por ID de oferta si existe
+         let inscriptosCount = 0;
+         if (pub?.id) {
+           const qCheck = query(collection(gpdDb, 'practicas_asignadas'), where('oferta_id', '==', pub.id));
+           const snapCheck = await getDocs(qCheck);
+           inscriptosCount = snapCheck.docs.length;
+         }
+         
+         return {
+            ...n,
+            horarioOficial: schedules[key] || 'Sin horario',
+            isPublished: !!pub && pub.estado === 'Abierta',
+            offerId: pub?.id,
+            cupo: pub?.cupo_maximo || 2,
+            inscriptos: inscriptosCount
+         };
+      });
+
+      const masterList = await Promise.all(getMasterListTask);
+      setNominaRows(masterList);
+    } catch (err) { console.error("Error cargando maestro vacantes", err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchVacancies(); }, []);
+
+  const handleToggleVacancy = async (row) => {
+     try {
+        if (!row.pid || !row.curso) return alert("Error: Registro de nómina sin PID o Curso asignado.");
+        
+        if (row.isPublished) {
+           // Cerrar vacante
+           if (row.offerId) {
+              await updateDoc(doc(gpdDb, 'practicas_ofertas', row.offerId), { estado: 'Cerrada' });
+           }
+        } else {
+           // Abrir vacante
+           const data = {
+              pid: row.pid,
+              materia: row.materia || PID_CATALOG[row.pid] || 'Sin Nombre',
+              curso: row.curso,
+              turno: row.turno || '',
+              coformador: row.docente || 'Sin Docente',
+              situacion: row.situacion || '',
+              horario: row.horarioOficial || '',
+              cupo_maximo: 2,
+              estado: 'Abierta',
+              createdAt: new Date()
+           };
+           if (row.offerId) {
+              await updateDoc(doc(gpdDb, 'practicas_ofertas', row.offerId), { estado: 'Abierta' });
+           } else {
+              await addDoc(collection(gpdDb, 'practicas_ofertas'), data);
+           }
+        }
+        fetchVacancies();
+     } catch (err) { 
+        console.error("Toggle error:", err);
+        alert("Error al cambiar estado: " + err.message); 
+     }
+  };
+
+  const filteredRows = nominaRows.filter(r => 
+     r.docente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     r.pid?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     r.curso?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const [showManual, setShowManual] = useState(false);
+  const [manualForm, setManualForm] = useState({ pid: '', materia: '', curso: '', turno: 'Mañana', docente: '', situacion: 'Interino', cupo: 2, horario: '' });
+
+  const handleManualSave = async (e) => {
+     e.preventDefault();
+     try {
+        const data = {
+           ...manualForm,
+           cupo_maximo: manualForm.cupo,
+           coformador: manualForm.docente,
+           estado: 'Abierta',
+           createdAt: new Date()
+        };
+        await addDoc(collection(gpdDb, 'practicas_ofertas'), data);
+        setShowManual(false);
+        fetchVacancies();
+     } catch (err) { alert(err.message); }
+  };
+
+  const toggleGlobal = async () => {
+     try {
+        const newStatus = !globalEnabled;
+        await setDoc(doc(gpdDb, 'settings', 'inscripciones'), { enabled: newStatus });
+        setGlobalEnabled(newStatus);
+        alert(newStatus ? "Portal de Inscripciones ABIERTO" : "Portal de Inscripciones CERRADO");
+     } catch (err) { alert(err.message); }
+  };
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/ofertas" subSections={PRACTICAS_SECTIONS} />
+      <div className="card" style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: globalEnabled ? '#fdf2f8' : '#f1f5f9', borderLeft: `6px solid ${globalEnabled ? '#ec4899' : '#94a3b8'}` }}>
+         <div>
+            <h4 style={{ fontWeight: 800, color: globalEnabled ? '#ec4899' : '#475569' }}>Control Global de Inscripciones</h4>
+            <p style={{ fontSize: '0.85rem' }}>{globalEnabled ? 'Los estudiantes pueden visualizar y postularse a vacantes abiertas.' : 'El portal de inscripciones está cerrado para todos los estudiantes.'}</p>
+         </div>
+         <button className="btn" onClick={toggleGlobal} style={{ background: globalEnabled ? '#ec4899' : '#475569', color: 'white', fontWeight: 800 }}>
+            {globalEnabled ? 'Desactivar Inscripciones' : 'Activar Inscripciones'}
+         </button>
+      </div>
+
+      <div className="header-flex">
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Maestro de Vacantes de Práctica</h1>
+          <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Basado en la Nómina Institucional y Carga Manual.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button className="btn" onClick={() => setShowManual(!showManual)} style={{ background: '#ec4899', color: 'white', fontWeight: 800, fontSize: '0.8rem' }}>
+             {showManual ? 'Cerrar Formulario' : '+ Vacante Manual'}
+          </button>
+          <div style={{ position: 'relative' }}>
+            <Search size={18} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input 
+              className="input-field" 
+              style={{ paddingLeft: '2.5rem', width: '300px' }} 
+              placeholder="Buscar por PID, Docente o Curso..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {showManual && (
+         <form className="card" style={{ marginTop: '1.5rem', border: '1px solid #ec4899' }} onSubmit={handleManualSave}>
+            <h3 style={{ marginBottom: '1.5rem', color: '#ec4899' }}>Cargar Vacante Especial (Fuera de Nómina)</h3>
+            <div className="grid grid-cols-4" style={{ gap: '1rem' }}>
+               <div className="form-group"><label>PID</label><input required className="input-field" value={manualForm.pid} onChange={e => setManualForm({...manualForm, pid: e.target.value.toUpperCase()})} /></div>
+               <div className="form-group" style={{ gridColumn: 'span 3' }}><label>Materia</label><input required className="input-field" value={manualForm.materia} onChange={e => setManualForm({...manualForm, materia: e.target.value})} /></div>
+               <div className="form-group"><label>Curso</label><input required className="input-field" value={manualForm.curso} onChange={e => setManualForm({...manualForm, curso: e.target.value})} /></div>
+               <div className="form-group"><label>Turno</label><select className="input-field" value={manualForm.turno} onChange={e => setManualForm({...manualForm, turno: e.target.value})}><option>Mañana</option><option>Tarde</option><option>Vespertino</option></select></div>
+               <div className="form-group"><label>Docente Co-formador</label><input required className="input-field" value={manualForm.docente} onChange={e => setManualForm({...manualForm, docente: e.target.value})} /></div>
+               <div className="form-group"><label>Cupo Inicial</label><input type="number" className="input-field" value={manualForm.cupo} onChange={e => setManualForm({...manualForm, cupo: parseInt(e.target.value)})} /></div>
+               <div className="form-group" style={{ gridColumn: 'span 4' }}><label>Horario (Ej: Lun 07:30-08:30)</label><input className="input-field" value={manualForm.horario} onChange={e => setManualForm({...manualForm, horario: e.target.value})} /></div>
+            </div>
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '1.5rem', background: '#ec4899' }}>Publicar Vacante Manual</button>
+         </form>
+      )}
+
+      <div className="card" style={{ padding: 0, marginTop: '1.5rem' }}>
+        {loading ? <p style={{ padding: '2rem', textAlign: 'center' }}>Sincronizando con Nómina Institucional...</p> : (
+          <table style={{ fontSize: '0.85rem' }}>
+            <thead>
+              <tr>
+                <th>PID / Materia</th>
+                <th>Docente (Co-formador)</th>
+                <th>Curso / Turno</th>
+                <th>Horarios Oficiales</th>
+                <th>Cupo Real</th>
+                <th style={{ textAlign: 'center' }}>Inscripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((r, i) => (
+                <tr key={i} style={{ opacity: r.isPublished ? 1 : 0.7, background: r.isPublished ? '#fdf2f8' : 'transparent' }}>
+                  <td>
+                    <div style={{ fontWeight: 800, color: '#ec4899' }}>{r.pid}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{r.materia}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{r.docente}</div>
+                    <span className="badge" style={{ fontSize: '0.65rem', padding: '1px 4px' }}>{r.situacion}</span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700 }}>{r.curso}</div>
+                    <div style={{ fontSize: '0.7rem' }}>{r.turno}</div>
+                  </td>
+                  <td style={{ color: r.horarioOficial === 'Sin horario' ? '#f43f5e' : 'inherit' }}>{r.horarioOficial}</td>
+                  <td>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ fontWeight: 800, color: r.inscriptos >= r.cupo ? '#ef4444' : '#15803d', fontSize: '1rem' }}>
+                           {r.inscriptos} /
+                        </div>
+                        <input 
+                           type="number" 
+                           min={r.inscriptos} 
+                           style={{ width: '45px', padding: '2px 4px', fontSize: '0.9rem', fontWeight: 800, border: '1px solid #ddd', borderRadius: '4px', textAlign: 'center' }} 
+                           value={r.cupo} 
+                           onChange={async (e) => {
+                              const newVal = parseInt(e.target.value);
+                              if (isNaN(newVal)) return;
+                              if (r.offerId) {
+                                 await updateDoc(doc(gpdDb, 'practicas_ofertas', r.offerId), { cupo_maximo: newVal });
+                                 fetchVacancies();
+                              } else {
+                                 alert("Primero debes abrir la vacante para ajustar su cupo.");
+                              }
+                           }}
+                        />
+                     </div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button 
+                      className="btn" 
+                      onClick={() => handleToggleVacancy(r)}
+                      style={{ 
+                        background: r.isPublished ? '#15803d' : '#ef4444', 
+                        color: 'white',
+                        padding: '0.4rem 0.8rem',
+                        fontWeight: 900,
+                        fontSize: '0.65rem',
+                        borderRadius: '6px',
+                        width: '80px',
+                        border: 'none',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {r.isPublished ? 'ABIERTA' : 'CERRADA'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/ofertas" subSections={PRACTICAS_SECTIONS} /></div>
+    </div>
+  );
+}
+
 function PracticaInstitutos() {
   const [institutos, setInstitutos] = useState([]);
   const [profesorados, setProfesorados] = useState([]);
@@ -1764,154 +2402,228 @@ function PracticaInstitutos() {
   );
 }
 
-function PracticaEstudiantes() {
-  const [practicas, setPracticas] = useState([]);
-  const [institutos, setInstitutos] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
+function PracticaAsignar() {
+  const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ residente: '', isfd: '', pid: '', curso: '', seccion: '', coformador: '', estado: 'Activa' });
 
-  useEffect(() => { fetchPracticas(); }, []);
-
-  const fetchPracticas = async () => {
+  const fetchPending = async () => {
+    setLoading(true);
     try {
-      const snap = await getDocs(collection(gpdDb, 'practicas_docentes'));
-      setPracticas(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      
-      const istSnap = await getDocs(collection(gpdDb, 'institutos'));
-      setInstitutos(istSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      
-      setLoading(false);
+      const snapInsc = await getDocs(collection(gpdDb, 'practicas_asignadas'));
+      setList(snapInsc.docs.map(doc => {
+         const d = doc.data();
+         return {
+            id: doc.id,
+            residente: d.estudiante_nombre,
+            profesorado: d.profesorado,
+            pid: d.pid || '',
+            materia: d.materia || '',
+            curso: d.curso || '',
+            coformador: d.coformador || '',
+            horario: d.horario || '',
+            estado: d.estado || 'Pendiente'
+         };
+      }));
     } catch (err) { console.error(err); }
+    setLoading(false);
   };
 
-  const handleSave = async () => {
-    if (!form.residente || !form.isfd) return alert("Hacen falta datos");
-    if (form.id) await updateDoc(doc(gpdDb, 'practicas_docentes', form.id), form);
-    else await addDoc(collection(gpdDb, 'practicas_docentes'), form);
-    setIsEditing(false); fetchPracticas();
-  };
+  useEffect(() => { fetchPending(); }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este listado de práctica?")) return;
-    try {
-      await deleteDoc(doc(gpdDb, 'practicas_docentes', id));
-      fetchPracticas();
-    } catch (err) {
-      console.error(err);
-      alert("Error al eliminar");
-    }
+  const handleApprove = async (item) => {
+     try {
+        const data = {
+           residente: item.residente,
+           profesorado: item.profesorado,
+           pid: item.pid,
+           materia: item.materia,
+           curso: item.curso,
+           coformador: item.coformador,
+           horario: item.horario,
+           estado: 'Activa',
+           createdAt: new Date()
+        };
+        await addDoc(collection(gpdDb, 'practicas_docentes'), data);
+        await deleteDoc(doc(gpdDb, 'practicas_asignadas', item.id));
+        alert(`¡Asignación de ${item.residente} aprobada con éxito!`);
+        fetchPending();
+     } catch (err) { alert(err.message); }
   };
-
-  if (isEditing) {
-    return (
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
-        <div className="card">
-           <h1 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>{form.id ? 'Editar Registro' : 'Nuevo Residente'}</h1>
-           <div className="grid grid-cols-2" style={{ gap: '1.5rem' }}>
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label>Buscar Estudiante por DNI (Opcional)</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input className="input-field" placeholder="Ingrese DNI..." id="dni-search" />
-                  <button className="btn btn-primary" type="button" onClick={async () => {
-                    const dni = document.getElementById('dni-search').value;
-                    if (!dni) return alert("Ingrese un DNI");
-                    try {
-                      const q = query(collection(gpdDb, 'practicantes'), where('dni', '==', dni));
-                      const snap = await getDocs(q);
-                      if (!snap.empty) {
-                        const u = snap.docs[0].data();
-                        setForm({ ...form, residente: `${u.apellido} ${u.nombre}`.toUpperCase(), isfd: u.instituto });
-                        alert(`Estudiante encontrado: ${u.nombre} ${u.apellido}`);
-                      } else {
-                        alert("No se encontró ningún estudiante con ese DNI en la base de datos.");
-                      }
-                    } catch (err) { alert(err.message); }
-                  }}>Validar DNI</button>
-                </div>
-              </div>
-              <div className="form-group"><label>Apellido y Nombre (RESIDENTE)</label><input className="input-field" value={form.residente} onChange={e => setForm({...form, residente: e.target.value})} /></div>
-              <div className="form-group">
-                <label>ISFD / Instituto</label>
-                <select className="input-field" value={form.isfd} onChange={e => setForm({...form, isfd: e.target.value})}>
-                  <option value="">Seleccione ISFD...</option>
-                  {institutos.map(i => <option key={i.id} value={i.nombre}>{i.nombre}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Materia (PID)</label>
-                <input className="input-field" value={form.pid} onChange={e => setForm({...form, pid: e.target.value.toUpperCase()})} />
-                {PID_CATALOG[form.pid] && <p style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>{PID_CATALOG[form.pid]}</p>}
-              </div>
-              <div className="form-group"><label>Curso/Sección</label><input className="input-field" placeholder="Ej: 4° 2da" value={form.curso} onChange={e => setForm({...form, curso: e.target.value})} /></div>
-              <div className="form-group"><label>Docente Co-formador</label><input className="input-field" value={form.coformador} onChange={e => setForm({...form, coformador: e.target.value})} /></div>
-              <div className="form-group">
-                <label>Estado de Práctica</label>
-                <select className="input-field" value={form.estado} onChange={e => setForm({...form, estado: e.target.value})}>
-                   <option value="Activa">Activa</option>
-                   <option value="Finalizada">Finalizada</option>
-                </select>
-              </div>
-           </div>
-           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-primary" onClick={handleSave}><Save size={18} /> Guardar Registro</button>
-              <button className="btn" onClick={() => setIsEditing(false)}>Cancelar</button>
-           </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <>
-      <style>{`
-        @media print {
-          .print-hide { display: none !important; }
-          .print-table { width: 100% !important; border-collapse: collapse; margin-top: 1rem; }
-          .print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: left; }
-          .print-table th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
-          body { background: white !important; }
-          .sidebar, .navbar { display: none !important; }
-        }
-      `}</style>
-      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
-      <div className="header-flex print-hide">
-        <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Nómina / Listados de Práctica</h1>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn" style={{ border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => window.print()}>
-            <FileText size={18} /> Descargar PDF
-          </button>
-          <button className="btn btn-primary" onClick={() => { setForm({ residente: '', isfd: '', pid: '', curso: '', seccion: '', coformador: '', estado: 'Activa' }); setIsEditing(true); }}>+ Nuevo Registro</button>
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/asignar" subSections={PRACTICAS_SECTIONS} />
+      <div className="header-flex">
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Asignar Prácticas</h1>
+          <p>Aprueba las solicitudes de inscripción de los estudiantes practicantes.</p>
         </div>
       </div>
-      <div className="table-wrapper">
-        <table className="print-table">
-          <thead><tr><th>Residente</th><th>ISFD</th><th>Materia (PID)</th><th>Curso / Co-formador</th><th>Estado</th><th className="print-hide">Acciones</th></tr></thead>
-          <tbody>
-            {practicas.map(p => (
-              <tr key={p.id}>
-                <td style={{ fontWeight: 800 }}>{p.residente.toUpperCase()}</td>
-                <td>{p.isfd}</td>
-                <td><span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>({p.pid})</span> {PID_CATALOG[p.pid]}</td>
-                <td>
-                  <span style={{ fontWeight: 700 }}>{p.curso} {p.seccion}</span>
-                  <div style={{ marginTop: '0.2rem', fontSize: '0.8rem', color: '#64748b' }}>Docente: {p.coformador}</div>
-                </td>
-                <td><span className="badge" style={{ background: p.estado === 'Activa' ? '#dcfce7' : '#f1f5f9', color: p.estado === 'Activa' ? '#15803d' : '#64748b' }}>{p.estado}</span></td>
-                <td className="print-hide">
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn" onClick={() => { setForm(p); setIsEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><Pencil size={16} /></button>
-                    <button className="btn" onClick={() => handleDelete(p.id)} style={{ color: '#ef4444' }}><Trash2 size={16} /></button>
-                  </div>
-                </td>
+
+      <div className="card" style={{ padding: 0, marginTop: '2rem' }}>
+        {loading ? <p style={{ padding: '2rem', textAlign: 'center' }}>Buscando solicitudes...</p> : (
+          <table>
+            <thead>
+              <tr>
+                <th>Estudiante (Residente)</th>
+                <th>Carrera</th>
+                <th>Materia EES 21</th>
+                <th>Docente / Horario</th>
+                <th style={{ textAlign: 'center' }}>Acción</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.map(r => (
+                <tr key={r.id}>
+                  <td><div style={{ fontWeight: 800 }}>{r.residente}</div></td>
+                  <td style={{ fontSize: '0.8rem' }}>{r.profesorado}</td>
+                  <td>
+                    <div style={{ fontWeight: 700 }}>({r.pid}) {r.materia}</div>
+                    <div style={{ fontSize: '0.75rem' }}>{r.curso}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{r.coformador}</div>
+                    <div style={{ fontSize: '0.7rem', opacity: 0.7 }}>{r.horario}</div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                     <button className="btn btn-primary" onClick={() => handleApprove(r)} style={{ padding: '0.5rem 1.2rem', fontSize: '0.8rem', background: '#ec4899' }}>Aprobar Asignación</button>
+                  </td>
+                </tr>
+              ))}
+              {list.length === 0 && <tr><td colSpan="5" style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>No hay solicitudes de inscripción pendientes.</td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/asignar" subSections={PRACTICAS_SECTIONS} /></div>
+    </div>
+  );
+}
+
+function PracticaEstudiantes() {
+  const [list, setList] = useState([]);
+  const [filter, setFilter] = useState({ profesorado: '', materia: '', search: '' });
+  const [loading, setLoading] = useState(true);
+
+  const fetchNomina = async () => {
+    setLoading(true);
+    try {
+      const snapDoc = await getDocs(collection(gpdDb, 'practicas_docentes'));
+      setList(snapDoc.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.residente.localeCompare(b.residente)));
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchNomina(); }, []);
+
+  const filtered = list.filter(item => {
+    const matchesSearch = !filter.search || item.residente.toLowerCase().includes(filter.search.toLowerCase());
+    const matchesProf = !filter.profesorado || (item.profesorado || "").toLowerCase().includes(filter.profesorado.toLowerCase());
+    const matchesMat = !filter.materia || item.pid.includes(filter.materia.toUpperCase());
+    return matchesSearch && matchesProf && matchesMat;
+  });
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Nómina Nominal de Prácticas - EES 21</title>
+          <style>
+            body { font-family: sans-serif; padding: 30px; }
+            h1 { text-align: center; color: #be185d; text-transform: uppercase; border-bottom: 2px solid #be185d; padding-bottom: 15px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 25px; }
+            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; font-size: 11px; }
+            th { background: #f1f5f9; font-weight: 800; }
+          </style>
+        </head>
+        <body>
+          <h1>Nómina Nominal de Estudiantes de Práctica y Residencia</h1>
+          <p><strong>Institución:</strong> E.E.S. N° 21 "ENSAM" - Lomas de Zamora</p>
+          <p><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString()}</p>
+          <table>
+            <thead>
+              <tr><th>Apellido y Nombre</th><th>DNI</th><th>Profesorado / Carrera</th><th>Materia (PID)</th><th>Curso</th><th>Co-formador</th></tr>
+            </thead>
+            <tbody>
+              ${filtered.map(r => `
+                <tr>
+                  <td><strong>${r.residente}</strong></td>
+                  <td>${r.dni || '-'}</td>
+                  <td>${r.profesorado}</td>
+                  <td>(${r.pid}) ${r.materia}</td>
+                  <td>${r.curso}</td>
+                  <td>${r.coformador}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  return (
+    <div>
+      <AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} />
+      
+      <div className="header-flex">
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>Nómina Nominal</h1>
+          <p>Listado consolidado de residentes aprobados en la institución.</p>
+        </div>
+        <button className="btn btn-primary" onClick={handlePrint} style={{ background: '#ec4899', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+           <FileText size={20} /> Descargar Listado Nominal (PDF)
+        </button>
+      </div>
+
+      <div className="card" style={{ marginBottom: '2rem', marginTop: '2rem' }}>
+         <div className="grid grid-cols-3" style={{ gap: '1rem' }}>
+            <div className="form-group"><label>Buscar Estudiante</label><input className="input-field" placeholder="Nombre..." value={filter.search} onChange={e => setFilter({...filter, search: e.target.value})} /></div>
+            <div className="form-group"><label>Filtrar Carrera</label><input className="input-field" placeholder="Pofesorado..." value={filter.profesorado} onChange={e => setFilter({...filter, profesorado: e.target.value})} /></div>
+            <div className="form-group"><label>Filtrar PID</label><input className="input-field" placeholder="Ej: BLG" value={filter.materia} onChange={e => setFilter({...filter, materia: e.target.value})} /></div>
+         </div>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        {loading ? <p style={{ padding: '2rem', textAlign: 'center' }}>Cargando nómina oficial...</p> : (
+          <table>
+            <thead>
+              <tr>
+                <th>Residente</th>
+                <th>Carrera</th>
+                <th>Asignación</th>
+                <th>Co-formador</th>
+                <th style={{ textAlign: 'center' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(r => (
+                <tr key={r.id}>
+                  <td><strong>{r.residente}</strong></td>
+                  <td style={{ fontSize: '0.8rem', color: '#64748b' }}>{r.profesorado}</td>
+                  <td>
+                    <div style={{ fontWeight: 700 }}>({r.pid}) {r.materia}</div>
+                    <div style={{ fontSize: '0.75rem' }}>{r.curso}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{r.coformador}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{r.horario}</div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button className="btn" style={{ color: '#ef4444' }} onClick={async () => { if(window.confirm("¿Eliminar de la nómina oficial?")) { await deleteDoc(doc(gpdDb, 'practicas_docentes', r.id)); fetchNomina(); } }}><Trash2 size={18} /></button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan="5" style={{ textAlign: 'center', padding: '3rem', opacity: 0.5 }}>No se encontraron residentes aprobados con estos filtros.</td></tr>}
+            </tbody>
+          </table>
+        )}
       </div>
       <div style={{ marginTop: '4rem' }}><AdminSubNav mainTitle="Prácticas" mainPath="/dashboard/practicas" currentPath="/dashboard/practicas/estudiantes" subSections={PRACTICAS_SECTIONS} /></div>
-    </>
+    </div>
   );
 }
 
@@ -2005,65 +2717,48 @@ function MiEscuelaHome() {
 
   return (
     <>
-      <div className="header-flex" style={{ marginBottom: '4rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>Propuestas por Ciclo Lectivo</h1>
-          <p>Organiza la estructura académica de la EES N°21 para cada período escolar.</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.6rem', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-           <input type="number" className="input-field" value={newYear} onChange={e => setNewYear(e.target.value)} placeholder="Año (Ej: 2026)" style={{ width: '140px', border: 'none', marginBottom: 0 }} />
-           <button className="btn btn-primary" onClick={handleAddYear}>Inaugurar Ciclo</button>
+      <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '0.5rem' }}>Mi Escuela</h1>
+        <p style={{ fontSize: '1.2rem', color: 'var(--text-light)' }}>Gestión de la estructura física, horaria y académica institucional.</p>
+      </div>
+
+      <DashboardGrid>
+        <DashboardCard 
+          color="#f97316" 
+          title="Gestión de Estructura" 
+          description="Administra los cursos, divisiones y turnos de la institución." 
+          icon={<School size={28} />} 
+          href="/dashboard/escuela/estructura"
+          target="_self"
+        />
+        <DashboardCard 
+          color="#3b82f6" 
+          title="Horario Institucional" 
+          description="Estructura horaria detallada por curso y materia." 
+          icon={<Clock size={28} />} 
+          href="/dashboard/escuela/horarios"
+          target="_self"
+        />
+      </DashboardGrid>
+
+      <div style={{ marginTop: '4rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Ciclos Lectivos</h2>
+        <div style={{ display: 'flex', gap: '0.75rem', background: 'white', padding: '0.4rem', borderRadius: '12px', border: '1px solid var(--border)' }}>
+           <input type="number" className="input-field" value={newYear} onChange={e => setNewYear(e.target.value)} placeholder="Ej: 2026" style={{ width: '100px', marginBottom: 0, border: 'none' }} />
+           <button className="btn btn-primary" style={{ padding: '0.5rem 1rem' }} onClick={handleAddYear}>Inaugurar</button>
         </div>
       </div>
 
-      {loading ? <p>Cargando ciclos académicos...</p> : (
-        <div className="grid grid-cols-2">
+      {loading ? <p>Cargando ciclos...</p> : (
+        <div className="grid grid-cols-3">
           {ciclos.map(ciclo => (
-            <div key={ciclo.id} className="card" style={{ position: 'relative', overflow: 'hidden', borderLeft: `8px solid ${ciclo.status === 'active' ? '#10b981' : '#cbd5e1'}` }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                 <div>
-                    <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '0.25rem', color: 'var(--color-primary)' }}>{ciclo.year}</h2>
-                    <span className="badge" style={{ 
-                       background: ciclo.status === 'active' ? '#dcfce7' : '#f1f5f9', 
-                       color: ciclo.status === 'active' ? '#15803d' : '#475569' 
-                    }}>
-                       {ciclo.status === 'active' ? 'Ciclo Vigente' : 'Ciclo Archivado'}
-                    </span>
-                 </div>
-                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {ciclo.status === 'active' && <button className="btn" style={{ background: '#f8fafc', border: '1px solid var(--border)' }}>Configurar Estructura</button>}
-                    <button className="btn" style={{ padding: '0.6rem', color: '#ef4444' }} onClick={() => { if(window.confirm("¿Archivar ciclo?")) updateDoc(doc(db,'ciclos', ciclo.id), {status: 'archived'}).then(fetchCiclos); }}><Clock size={18} /></button>
-                 </div>
-               </div>
-
-               <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '1rem' }}>Propuesta Académica</h4>
-                  <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>3</p>
-                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>PLANES</p>
-                     </div>
-                     <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }}></div>
-                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>12</p>
-                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>SECCIONES</p>
-                     </div>
-                     <div style={{ width: '1px', height: '30px', background: '#e2e8f0' }}></div>
-                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981' }}>540</p>
-                        <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8' }}>MATRÍCULA</p>
-                     </div>
-                  </div>
+            <div key={ciclo.id} className="card" style={{ borderLeft: `6px solid ${ciclo.status === 'active' ? '#10b981' : '#cbd5e1'}` }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '1.75rem', fontWeight: 900 }}>{ciclo.year}</h3>
+                  <span className="badge" style={{ background: ciclo.status === 'active' ? '#dcfce7' : '#f1f5f9' }}>{ciclo.status === 'active' ? 'ACTIVO' : 'ARCHIVADO'}</span>
                </div>
             </div>
           ))}
-          {ciclos.length === 0 && (
-            <div className="card" style={{ gridColumn: 'span 2', padding: '6rem', textAlign: 'center', opacity: 0.6 }}>
-               <School size={48} style={{ marginBottom: '1.5rem', color: 'var(--color-primary)' }} />
-               <h3>No se han inaugurado Ciclos Lectivos</h3>
-               <p>Ingresa un año arriba para comenzar a estructurar tu escuela.</p>
-            </div>
-          )}
         </div>
       )}
     </>
@@ -2174,9 +2869,9 @@ function PlanEstudiosManagement() {
     const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setOrientaciones(list.length > 0 ? list : [
       { id: '1', name: 'Ciclo Básico', resolucion: 'Res. 3828/09', cursos: ['1°', '2°', '3°'], secciones: ['1°','2°','3°','4°','5°','6°','7°','8°','9°','10°','11°','12°'] },
-      { id: '2', name: 'Orientación Ciencias Sociales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] },
-      { id: '3', name: 'Orientación Ciencias Naturales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] },
-      { id: '4', name: 'Orientación Economía y Administración', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] }
+      { id: '2', name: 'Ciencias Sociales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] },
+      { id: '3', name: 'Ciencias Naturales', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] },
+      { id: '4', name: 'Educación Física', resolucion: 'Res. 3828/09', cursos: ['4°', '5°', '6°'], secciones: ['1°','2°','3°','4°'] }
     ]);
   };
 
@@ -2824,6 +3519,41 @@ function UserManagement() {
 }
 
 
+function DualRoleNotice() {
+  const [hasGPD, setHasGPD] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const check = async () => {
+      const gUser = gpdAuth.currentUser;
+      if (!gUser) return;
+      try {
+        const pSnap = await getDoc(doc(gpdDb, 'practicantes', gUser.uid));
+        const dSnap = await getDoc(doc(gpdDb, 'docentes_practica', gUser.uid));
+        if (pSnap.exists() || dSnap.exists()) setHasGPD(true);
+      } catch (err) { console.log("GPD Check notice skip"); }
+    };
+    check();
+  }, []);
+
+  if (!hasGPD) return null;
+
+  return (
+    <div className="card" style={{ background: '#fdf2f8', border: '2px dashed #ec4899', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', padding: '1.25rem 2rem', maxWidth: '1200px', margin: '0 auto 2rem' }}>
+       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ background: '#ec4899', color: 'white', padding: '12px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(236, 72, 153, 0.3)' }}><BookUser size={28} /></div>
+          <div style={{ textAlign: 'left' }}>
+            <h4 style={{ fontWeight: 800, color: '#be185d', fontSize: '1.1rem' }}>Múltiples Perfiles Detectados</h4>
+            <p style={{ fontSize: '0.9rem', color: '#db2777', opacity: 0.9 }}>Tú también eres parte del Portal de Prácticas (GPD). ¿Deseas ingresar a tu panel de práctica docente?</p>
+          </div>
+       </div>
+       <button onClick={() => navigate('/gpd-panel')} className="btn btn-primary" style={{ background: '#db2777', color: 'white', fontWeight: 800, whiteSpace: 'nowrap', border: 'none', padding: '0.75rem 1.5rem' }}>
+         Ingresar como Práctica <ArrowRight size={18} style={{ marginLeft: '0.5rem' }} />
+       </button>
+    </div>
+  );
+}
+
 function AdminHome() {
   return (
     <>
@@ -2949,7 +3679,7 @@ export default function AdminDashboard() {
         const snap = await getDoc(adminRef);
         const allPerms = [
           'personal', 'personal/database', 'personal/nomina', 'personal/pof', 'personal/novedades',
-          'escuela', 'boletin', 
+          'escuela', 'escuela/estructura', 'escuela/horarios', 'boletin', 
           'estudiantes', 'estudiantes/database', 'estudiantes/nominas',
           'planillas', 'planillas/calificacion', 'planillas/seguimiento',
           'ajustes', 'ajustes/usuarios', 'ajustes/sistema', 'ajustes/roles', 'ajustes/plan'
@@ -2975,11 +3705,20 @@ export default function AdminDashboard() {
     if (path.includes('personal/novedades')) return 'Novedades Administrativas';
     if (path.includes('personal')) return 'Mi Personal';
     if (path.includes('estudiantes/nominas')) return 'Nóminas Escolares';
+    if (path.includes('practicas/ofertas')) return 'Ofertas de Vacantes';
+    if (path.includes('practicas/institutos')) return 'Gestión de Institutos';
+    if (path.includes('practicas/profesorados')) return 'Gestión de Profesorados';
+    if (path.includes('practicas/docentes')) return 'Docentes de Práctica';
+    if (path.includes('practicas/usuarios')) return 'Base de Practicantes';
+    if (path.includes('practicas/estudiantes')) return 'Nómina de Prácticas';
+    if (path.includes('practicas')) return 'Prácticas Docentes';
     if (path.includes('estudiantes/database')) return 'Base de Datos de Estudiantes';
     if (path.includes('estudiantes')) return 'Mis Estudiantes';
     if (path.includes('planillas/calificacion')) return 'Planillas de Calificación';
     if (path.includes('planillas/seguimiento')) return 'Planillas de Seguimiento';
     if (path.includes('planillas')) return 'Mis Planillas';
+    if (path.includes('escuela/estructura')) return 'Estructura Institucional';
+    if (path.includes('escuela/horarios')) return 'Horarios Institucionales';
     if (path.includes('escuela')) return 'Mi Escuela';
     if (path.includes('boletin')) return 'Boletín Digital';
     if (path.includes('ajustes/usuarios')) return 'Gestión de Usuarios';
@@ -3013,12 +3752,15 @@ export default function AdminDashboard() {
           </div>
         } />
         <Route path="escuela" element={<MiEscuelaHome />} />
-        <Route path="escuela/materias" element={<EscuelaMaterias />} />
+        <Route path="escuela/estructura" element={<EscuelaEstructura />} />
+        <Route path="escuela/horarios" element={<EscuelaHorarios />} />
         <Route path="practicas" element={<PracticaHome />} />
+        <Route path="practicas/ofertas" element={<PracticaOfertas />} />
         <Route path="practicas/institutos" element={<PracticaInstitutos />} />
         <Route path="practicas/profesorados" element={<PracticaProfesorados />} />
         <Route path="practicas/docentes" element={<PracticaDocentes />} />
         <Route path="practicas/usuarios" element={<PracticaUsuarios />} />
+        <Route path="practicas/asignar" element={<PracticaAsignar />} />
         <Route path="practicas/estudiantes" element={<PracticaEstudiantes />} />
         <Route path="practicas/accesos" element={<PracticaAccesos />} />
         <Route path="planillas" element={<PlanillasHome />} />

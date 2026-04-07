@@ -1,7 +1,46 @@
-import { Routes, Route } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '../components/MainLayout';
-import { BookOpen, Calendar, LayoutGrid, FilePlus, Library, Share2 } from 'lucide-react';
+import { BookOpen, Calendar, LayoutGrid, FilePlus, Library, Share2, BookUser, ArrowRight } from 'lucide-react';
 import { DashboardGrid, DashboardCard } from '../components/DashboardCards';
+import { gpdAuth, gpdDb } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+
+function DualRoleNotice() {
+  const [hasGPD, setHasGPD] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const check = async () => {
+      const gUser = gpdAuth.currentUser;
+      if (!gUser) return;
+      try {
+        const pSnap = await getDoc(doc(gpdDb, 'practicantes', gUser.uid));
+        const dSnap = await getDoc(doc(gpdDb, 'docentes_practica', gUser.uid));
+        if (pSnap.exists() || dSnap.exists()) setHasGPD(true);
+      } catch (err) { console.log("GPD Check skip"); }
+    };
+    check();
+  }, []);
+
+  if (!hasGPD) return null;
+
+  return (
+    <div className="card" style={{ background: '#fdf2f8', border: '2px dashed #ec4899', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', padding: '1.25rem 2rem' }}>
+       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ background: '#ec4899', color: 'white', padding: '12px', borderRadius: '12px' }}><BookUser size={28} /></div>
+          <div style={{ textAlign: 'left' }}>
+            <h4 style={{ fontWeight: 800, color: '#be185d' }}>Perfil de Práctica Detectado</h4>
+            <p style={{ fontSize: '0.9rem', color: '#db2777', opacity: 0.9 }}>Parece que también participas en la Gestión de Prácticas (GPD) como co-formador o estudiante.</p>
+          </div>
+       </div>
+       <button onClick={() => navigate('/gpd-panel')} className="btn" style={{ background: '#db2777', color: 'white', fontWeight: 800, whiteSpace: 'nowrap', padding: '0.75rem 1.5rem' }}>
+         Ir a GPD <ArrowRight size={18} style={{ marginLeft: '0.5rem' }} />
+       </button>
+    </div>
+  );
+}
 
 
 function TeacherHome() {
@@ -16,6 +55,8 @@ function TeacherHome() {
           Modo Docente
         </div>
       </div>
+
+      <DualRoleNotice />
 
       <DashboardGrid>
         <DashboardCard 
@@ -58,7 +99,7 @@ export default function TeacherDashboard() {
         <Route index element={<TeacherHome />} />
         <Route path="mis-cursos" element={<div>Mis Cursos (Próximamente)</div>} />
         <Route path="recursos" element={<div>Recursos (Próximamente)</div>} />
-        <Route path="practicas" element={<div>Práctica Docente (Próximamente)</div>} />
+        <Route path="practicas" element={<Navigate to="/gpd-panel" replace />} />
         <Route path="*" element={<TeacherHome />} />
       </Routes>
     </MainLayout>

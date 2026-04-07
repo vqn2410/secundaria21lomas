@@ -109,7 +109,7 @@ export default function GPDRegistro() {
         try {
           console.log("LOG: Subiendo foto...");
           const photoRef = ref(gpdStorage, `fotos_4x4/${uid}`);
-          await withTimeout(uploadBytes(photoRef, photoFile), 10000, "la subida de la Foto");
+          await withTimeout(uploadBytes(photoRef, photoFile, { contentType: photoFile.type }), 10000, "la subida de la Foto");
           photoURL = await getDownloadURL(photoRef);
           console.log("LOG: Foto lista.");
         } catch (storageErr) {
