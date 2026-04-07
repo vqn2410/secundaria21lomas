@@ -102,13 +102,25 @@ function AdminSubNav({ mainTitle, mainPath, currentPath, subSections }) {
   const next = currentIndex < subSections.length - 1 ? subSections[currentIndex + 1] : null;
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.75rem 1.5rem', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '2rem', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <button onClick={() => navigate('/dashboard')} className="btn" style={{ padding: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-light)' }}>
-          <LayoutDashboard size={16} /> Dashboard
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      background: 'white', 
+      padding: '0.75rem 1rem', 
+      borderRadius: '12px', 
+      border: '1px solid var(--border)', 
+      marginBottom: '2rem', 
+      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)',
+      flexWrap: 'wrap',
+      gap: '1rem'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <button onClick={() => navigate('/dashboard')} className="btn" style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-light)' }}>
+          <LayoutDashboard size={16} /> <span style={{ display: window.innerWidth < 480 ? 'none' : 'inline' }}>Dashboard</span>
         </button>
         <span style={{ color: 'var(--border)', opacity: 0.5 }}>/</span>
-        <button onClick={() => navigate(mainPath)} className="btn" style={{ padding: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+        <button onClick={() => navigate(mainPath)} className="btn" style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>
           <ArrowUpLeft size={16} /> {mainTitle}
         </button>
       </div>

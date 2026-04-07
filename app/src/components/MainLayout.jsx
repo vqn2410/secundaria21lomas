@@ -44,13 +44,13 @@ export default function MainLayout({ children, role, title }) {
           <Logo to={getDashboardPath()} />
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {/* Selector de Rol Persistente */}
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginRight: '1rem' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px' }}>
             <button 
               onClick={() => navigate(getDashboardPath())} 
               style={{ 
-                padding: '0.4rem 1rem', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, 
+                padding: '0.4rem 0.75rem', border: 'none', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, 
                 cursor: 'pointer', background: 'white', color: 'var(--text)', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
               }}
             >
@@ -59,23 +59,23 @@ export default function MainLayout({ children, role, title }) {
             <button 
               onClick={() => navigate('/gpd-panel')} 
               style={{ 
-                padding: '0.4rem 1rem', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, 
+                padding: '0.4rem 0.75rem', border: 'none', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, 
                 cursor: 'pointer', background: 'transparent', color: '#64748b'
               }}
             >
-              Portal GPD
+              GPD
             </button>
           </div>
 
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-light)', borderRight: '1px solid var(--border)', paddingRight: '1rem', fontWeight: 500 }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', borderRight: '1px solid var(--border)', paddingRight: '0.75rem', fontWeight: 500, display: window.innerWidth < 640 ? 'none' : 'block' }}>
             {auth.currentUser?.email}
           </div>
 
           <button onClick={handleLogout} className="btn" style={{ 
             background: 'none', border: '1px solid var(--border)', 
-            fontSize: '0.875rem', padding: '0.5rem 1rem', color: 'var(--text-light)', fontWeight: 600
+            fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: 'var(--text-light)', fontWeight: 600
           }}>
-             Cerrar Sesión
+             Salir
           </button>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-light)' }}>
             <User size={20} />

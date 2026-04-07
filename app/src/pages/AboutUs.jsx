@@ -35,7 +35,7 @@ export default function AboutUs() {
       <section className="section" style={{ maxWidth: '1100px', margin: '0 auto' }}>
 
         {/* Origins with Image */}
-        <div className="reveal" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '4rem', marginBottom: '8rem', alignItems: 'center' }}>
+        <div className="responsive-grid reveal" style={{ marginBottom: '8rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
               <History size={32} color="var(--color-primary)" />
@@ -64,12 +64,12 @@ export default function AboutUs() {
             <h2 style={{ fontSize: '2.25rem' }}>Línea del Tiempo</h2>
           </div>
 
-          <div style={{ position: 'relative', paddingLeft: '2.5rem' }}>
-            <div style={{ position: 'absolute', left: '7px', top: '10px', bottom: '10px', width: '2px', background: 'var(--border)' }}></div>
+        <div className="responsive-grid reveal" style={{ position: 'relative', paddingLeft: '2.5rem' }}>
+          <div style={{ position: 'absolute', left: '7px', top: '10px', bottom: '10px', width: '2px', background: 'var(--border)' }}></div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem' }}>
-              <div className="reveal reveal-delay-1">
-                {timelineEvents.slice(0, 4).map((event, idx) => (
+          <div className="responsive-grid" style={{ gap: '4rem', width: '100%' }}>
+            <div className="reveal reveal-delay-1">
+              {timelineEvents.slice(0, 4).map((event, idx) => (
                   <div key={idx} style={{ position: 'relative', marginBottom: '2.5rem' }}>
                     <div style={{ position: 'absolute', left: '-2.5rem', top: '5px', width: '16px', height: '16px', borderRadius: '50%', background: 'var(--color-primary)', border: '4px solid white', boxShadow: '0 0 0 1px var(--color-primary)' }}></div>
                     <span style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--color-secondary)' }}>{event.year}</span>
@@ -93,7 +93,7 @@ export default function AboutUs() {
         </div>
 
         {/* Building & Library with Images */}
-        <div className="grid grid-cols-2 reveal" style={{ gap: '3rem', marginBottom: '8rem' }}>
+        <div className="responsive-grid reveal" style={{ gap: '3rem', marginBottom: '8rem' }}>
           <div className="card reveal-delay-1" style={{ padding: 0, overflow: 'hidden' }}>
             <img src="https://lh3.googleusercontent.com/sitesv/APaQ0SSGGAqH2IeHnxVB1QG1Is77iMztJcgye_dI79IqokLMxuUFBFTE_RYtI8OAv_WGkDoNyWISOxh5FJrUJfIZ718hWMex8J-trN3wC7Bd0DHRqs0fCOg_L1w6Yu5bAiHyRk8D6GkJBkUkhSH5IBt7cGjgcldb55nJHnSkspmKHNJMtyB39F5-TgmUoWZDMPZerIF6LaeDCi9KH5b6ZgDEw5elCXCSXbPcV8k5zUo=w1280" style={{ width: '100%', height: '240px', objectFit: 'cover' }} alt="Quinta Las Golondrinas" />
             <div style={{ padding: '2.5rem' }}>

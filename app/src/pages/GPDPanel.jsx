@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, GraduationCap, ClipboardList, LogOut, FileText, CheckCircle, Clock, Camera, Loader2, Trash2 } from 'lucide-react';
+import { BookOpen, GraduationCap, ClipboardList, LogOut, FileText, CheckCircle, Clock, Camera, Loader2, Trash2, ArrowLeft } from 'lucide-react';
+import Logo from '../components/Logo';
 import { auth, db, gpdAuth, gpdDb, gpdStorage } from '../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
@@ -44,18 +45,26 @@ export default function GPDPanel() {
   return (
     <div style={{ minHeight: '100vh', background: '#fdf4ff', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <header style={{ background: '#ec4899', color: 'white', padding: '1rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <GraduationCap size={32} />
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Portal GPD - EES N° 21</h1>
+      <header style={{ 
+        background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', 
+        padding: '1.5rem', color: 'white', display: 'flex', 
+        justifyContent: 'space-between', alignItems: 'center', 
+        boxShadow: '0 4px 15px rgba(190, 24, 93, 0.3)',
+        flexWrap: 'wrap', gap: '1rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ background: 'white', padding: '6px', borderRadius: '10px', display: 'flex' }}>
+             <Logo size={32} />
+          </div>
+          <h1 style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.02em' }}>Portal GPD</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {/* Selector de Rol Persistente */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.15)', padding: '4px', borderRadius: '10px', marginRight: '0.5rem' }}>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.15)', padding: '4px', borderRadius: '10px' }}>
             <button 
               onClick={() => navigate('/dashboard')} 
               style={{ 
-                padding: '0.4rem 1rem', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, 
+                padding: '0.4rem 0.75rem', border: 'none', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, 
                 cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.8)'
               }}
             >
@@ -64,19 +73,18 @@ export default function GPDPanel() {
             <button 
               onClick={() => navigate('/gpd-panel')} 
               style={{ 
-                padding: '0.4rem 1rem', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, 
+                padding: '0.4rem 0.75rem', border: 'none', borderRadius: '8px', fontSize: '0.7rem', fontWeight: 700, 
                 cursor: 'pointer', background: 'white', color: '#ec4899', boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             >
-              Portal GPD
+              GPD
             </button>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>{profile?.nombre} {profile?.apellido}</p>
-            <p style={{ fontSize: '0.75rem', opacity: 0.9 }}>{profile?.type === 'estudiante' ? 'Estudiante Practicante' : 'Docente / Referente'}</p>
+          <div style={{ textAlign: 'right', display: window.innerWidth < 480 ? 'none' : 'block' }}>
+            <p style={{ fontWeight: 700, fontSize: '0.85rem' }}>{profile?.nombre} {profile?.apellido}</p>
           </div>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '35px', height: '35px', borderRadius: '50%', background: 'white', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {(profile?.photoURL || profile?.fotoURL) ? (
               <img 
                 src={profile?.photoURL || profile?.fotoURL} 
@@ -84,10 +92,10 @@ export default function GPDPanel() {
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
-            ) : <GraduationCap size={20} color="#ec4899" />}
+            ) : <GraduationCap size={18} color="#ec4899" />}
           </div>
-          <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.5rem', borderRadius: '50%', cursor: 'pointer' }}>
-            <LogOut size={20} />
+          <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.4rem', borderRadius: '50%', cursor: 'pointer' }}>
+            <LogOut size={18} />
           </button>
         </div>
       </header>
@@ -96,11 +104,11 @@ export default function GPDPanel() {
       <main style={{ flex: 1, padding: '2rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
         
         {/* Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
           <TabButton active={activeTab === 'inicio'} onClick={() => setActiveTab('inicio')} icon={<BookOpen size={18} />} label="Inicio" />
           {profile?.type === 'estudiante' && (
             <>
-              <TabButton active={activeTab === 'mis-practicas'} onClick={() => setActiveTab('mis-practicas')} icon={<CheckCircle size={18} />} label="Mis Prácticas" />
+              <TabButton active={activeTab === 'mis-practicas'} onClick={() => setActiveTab('mis-practicas')} icon={<CheckCircle size={18} />} label={window.innerWidth < 640 ? "Prácticas" : "Mis Prácticas"} />
               <TabButton active={activeTab === 'inscripciones'} onClick={() => setActiveTab('inscripciones')} icon={<ClipboardList size={18} />} label="Inscripciones" />
             </>
           )}
@@ -266,10 +274,17 @@ function MisPracticas({ profile }) {
                                 .label { font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
                                 .value { font-size: 1rem; font-weight: 600; color: #1e293b; }
                                 .verified-badge { position: absolute; top: 150px; right: 40px; transform: rotate(15deg); border: 4px solid #10b981; color: #10b981; padding: 10px; border-radius: 8px; font-weight: 900; opacity: 0.3; }
-                                .signatures { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; text-align: center; }
                                 .sig-line { border-top: 1px solid #1e293b; margin-top: 60px; padding-top: 10px; font-size: 0.75rem; font-weight: 700; }
                                 .footer { margin-top: 40px; font-size: 0.65rem; color: #94a3b8; text-align: center; border-top: 1px dashed #e2e8f0; padding-top: 20px; }
                                 @media print { .no-print { display: none; } body { padding: 0; } .document { border: none; } }
+                                @media (max-width: 768px) {
+                                  .dashboard { flex-direction: column; }
+                                  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+                                  .grid-cols-2, .grid-cols-3, .grid-cols-4 { grid-template-columns: 1fr; }
+                                  .table-wrapper { overflow-x: auto; }
+                                  .container { padding: 1rem; }
+                                  .header-flex { flex-direction: column; align-items: flex-start; gap: 1rem; }
+                                }
                               </style>
                             </head>
                             <body>
